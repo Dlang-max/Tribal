@@ -1,6 +1,6 @@
 # Validate Tribal Markdown
 
-The Python library validates the format in [the v1 specification](../tribal_markdown_spec.md). It does not need a Git repository, MySQL, or network access. Git contexts are checked only when explicitly declared in a note.
+The Python library validates the format in [the v1 specification](tribal_markdown_spec.md). It does not need a Git repository, MySQL, or network access. Git contexts are checked only when explicitly declared in a note.
 
 ## Install
 
@@ -15,9 +15,9 @@ python -m pip install -e '.[test]'
 ## Submit a file or vault
 
 ```bash
-tribal validate fixtures/markdown_v1/baseline/Guide.md
-python -m tribal validate fixtures/markdown_v1/baseline --json
-tribal validate fixtures/markdown_v1/baseline --knowledge-base fixture-kb \
+tribal validate tests/acceptance_fixtures/markdown_v1/baseline/Guide.md
+python -m tribal validate tests/acceptance_fixtures/markdown_v1/baseline --json
+tribal validate tests/acceptance_fixtures/markdown_v1/baseline --knowledge-base fixture-kb \
   --domain documentation --domain database --domain authentication --domain botany
 ```
 

@@ -19,13 +19,11 @@ from tribal import validate_document, validate_vault
 
 
 def fixture_root():
-    # Accommodate root/fixtures and tests/fixtures without assuming this checkout.
     here = Path(__file__).resolve().parent
-    for parent in (here.parent, here):
-        candidate = parent / "fixtures" / "markdown_v1"
-        if (candidate / "manifest.json").is_file():
-            return candidate
-    raise RuntimeError("markdown_v1 fixture package is missing")
+    candidate = here / "acceptance_fixtures" / "markdown_v1"
+    if (candidate / "manifest.json").is_file():
+        return candidate
+    raise RuntimeError("markdown_v1 acceptance fixture package is missing")
 
 
 FIXTURES = fixture_root()

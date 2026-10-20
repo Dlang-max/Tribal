@@ -1,6 +1,6 @@
 # Markdown v1 review-edge fixtures
 
-These are synthetic design acceptance fixtures for the [Tribal Markdown v1 specification](../../tribal_markdown_spec.md) and [database schema](../../tribal_schema.md). They are not implementation test results. No MySQL importer, Obsidian integration, Mermaid renderer, or embedding provider has been exercised by creating this package.
+These are synthetic design acceptance fixtures for the [Tribal Markdown v1 specification](../../../docs/tribal_markdown_spec.md) and [database schema](../../../docs/tribal_schema.md). They are not implementation test results. No MySQL importer, Obsidian integration, Mermaid renderer, or embedding provider has been exercised by creating this package.
 
 ## Layout
 

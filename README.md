@@ -13,6 +13,6 @@ See the [installation and usage guide](docs/parser_usage.md) and [public Python 
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -e '.[test]'
-tribal validate fixtures/markdown_v1/baseline --json
+tribal validate tests/acceptance_fixtures/markdown_v1/baseline --json
 python -m pytest --cov=tribal --cov-branch
 ```

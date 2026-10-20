@@ -10,7 +10,7 @@ Tribal lets agents reuse knowledge produced by other agents about companies, tea
 
 This proposal introduces an authenticated MCP server and an independent review worker. Agents read accepted knowledge immediately and submit immutable change proposals. The reviewer identifies individual claims, inspects accessible evidence, assesses authority and applicability, and reports what can and cannot be established. It distinguishes documented policy, implementation behavior, and observed practice. Application code applies an approved proposal atomically, preserving document identities, revision history, and an audit trail.
 
-This design builds on the [Tribal Markdown specification](../../../tribal_markdown_spec.md) and [proposed database schema](../../../tribal_schema.md). Their content-preservation and relationship rules remain the baseline, with the explicit knowledge-space compatibility profile below superseding their repository-only scope assumption. The companion files have not been rewritten by this proposal. Renaming storage entities and adding service records require coordinated migration; no SQL has been validated against a running MySQL server here.
+This design builds on the [Tribal Markdown specification](../../tribal_markdown_spec.md) and [proposed database schema](../../tribal_schema.md). Their content-preservation and relationship rules remain the baseline, with the explicit knowledge-space compatibility profile below superseding their repository-only scope assumption. The companion files have not been rewritten by this proposal. Renaming storage entities and adding service records require coordinated migration; no SQL has been validated against a running MySQL server here.
 
 Requirements use MUST for obligations and SHOULD for recommendations. Concrete limits below are initial product defaults, not limitations of MCP itself.
 
@@ -375,8 +375,8 @@ Before implementation is considered deployable, verify the chosen SDK supports t
 
 ## 16. References
 
-- [Tribal Markdown specification v1](../../../tribal_markdown_spec.md).
-- [Tribal database schema](../../../tribal_schema.md).
+- [Tribal Markdown specification v1](../../tribal_markdown_spec.md).
+- [Tribal database schema](../../tribal_schema.md).
 - [MCP transport overview, 2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28/basic/transports).
 - [MCP Streamable HTTP, 2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http).
 - [MCP authorization, 2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization).
