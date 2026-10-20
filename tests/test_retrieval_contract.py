@@ -78,7 +78,8 @@ def test_semantic_exact_scores_use_persisted_float32_and_float64_norms(mysql_db,
 
 
 def test_close_scores_are_not_rounded_before_tie_break(mysql_db, active_kb, make_note):
-    low_id, high_id = "10000000-0000-4000-8000-000000000001", "f0000000-0000-4000-8000-000000000001"
+    low_id, high_id = sorted([str(uuid.uuid4()), str(uuid.uuid4())], key=lambda value: uuid.UUID(value).bytes)
+    assert uuid.UUID(low_id).bytes < uuid.UUID(high_id).bytes
     publish(mysql_db, active_kb, {"lower.md": make_note(id=low_id), "higher.md": make_note(id=high_id)},
             {"lower.md": [1, 0.0002, 0], "higher.md": [1, 0.0001, 0]})
     hits = search(mysql_db, active_kb, "q", provider=QueryProvider())["hits"]
@@ -87,7 +88,8 @@ def test_close_scores_are_not_rounded_before_tie_break(mysql_db, active_kb, make
 
 
 def test_exact_ties_order_by_document_uuid_bytes_then_ordinal(mysql_db, active_kb, make_note):
-    low_id, high_id = "10000000-0000-4000-8000-000000000001", "f0000000-0000-4000-8000-000000000001"
+    low_id, high_id = sorted([str(uuid.uuid4()), str(uuid.uuid4())], key=lambda value: uuid.UUID(value).bytes)
+    assert uuid.UUID(low_id).bytes < uuid.UUID(high_id).bytes
     publish(mysql_db, active_kb, {"z.md": make_note("## A\n\none\n\n## B\n\ntwo\n", id=low_id),
                                  "a.md": make_note(id=high_id)}, {"z.md": [1, 0, 0], "a.md": [1, 0, 0]})
     hits = search(mysql_db, active_kb, "q", provider=QueryProvider())["hits"]
@@ -128,9 +130,10 @@ def test_fulltext_document_relevance_contributes_to_each_owning_chunk(mysql_db, 
 
 def test_hybrid_uses_complete_rankings_before_applying_page_limit(mysql_db, active_kb, make_note):
     documents, vectors = {}, {}
+    identities = sorted([str(uuid.uuid4()) for _ in range(25)], key=lambda value: uuid.UUID(value).bytes)
     for semantic_rank in range(1, 26):
         numeric_id = 26 - semantic_rank
-        identity = f"20000000-0000-4000-8000-{numeric_id:012x}"
+        identity = identities[numeric_id - 1]
         path = f"{numeric_id:02}.md"
         documents[path] = make_note("needle\n", id=identity)
         vectors[path] = [1, semantic_rank / 20, 0]

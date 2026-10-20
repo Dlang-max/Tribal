@@ -102,7 +102,7 @@ def test_cli_end_to_end_nonsoftware_vault_without_git(mysql_config, tmp_path):
     assert idle["state"] == "idle"
     vault = tmp_path / "vault"
     vault.mkdir()
-    authored = note("## Observation\n\nSeed germination needle.\n", knowledge_base=key,
+    authored = note("## Observation\n\nSeed germination needle.\n", knowledge_base=key, id=str(uuid.uuid4()),
                     contexts=[dict(key="trial", type="experiment", locator="trial-12")])
     (vault / "botany.md").write_text(authored, encoding="utf-8")
     for name in (".git", ".obsidian", ".venv", ".tribal-staging"):
