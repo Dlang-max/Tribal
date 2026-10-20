@@ -357,11 +357,10 @@ def _scan(connection, kb, parameters, query_vector, dimensions, max_candidates):
 
 
 def _page(connection, kb, session, next_rank, limit, parameters):
-    if _json(session["parameters"]) != parameters:
+    if session["knowledge_base_id"] != kb["id"] or _json(session["parameters"]) != parameters:
         raise TribalError("E_CURSOR_INVALID", "Search parameters differ from the stored session.",
                           hint="Repeat the original query, mode, and filters or start a new search.")
-    if (session["knowledge_base_id"] != kb["id"]
-            or session["knowledge_generation"] != kb["knowledge_generation"]
+    if (session["knowledge_generation"] != kb["knowledge_generation"]
             or session["indexing_generation"] != kb["indexing_generation"]
             or session["profile_id"] != kb["active_profile_id"] or session["expired"]):
         raise _expired()
