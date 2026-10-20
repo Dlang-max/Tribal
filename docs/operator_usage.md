@@ -61,7 +61,16 @@ A file preview returns the `chunk_document` result. A directory preview returns 
 
 Ingestion is atomic for the selected batch. Missing files never imply deletion. The service validates knowledge-base/domain assignments, current heads, links, and the complete planned namespace before publishing. An accepted revision remains stored even if embedding generation later fails. An unchanged import preserves its authored revision and chunks; derived repairs are explicit commands.
 
-When editing an existing note, use the current revision UUID as its `tribal_base_revision` transport metadata, following the [Markdown revision contract](tribal_markdown_spec.md). The token is removed from canonical stored Markdown. A stale authored edit returns `E_CONFLICT`; reload the current note, reconcile the edit, and retry. Ordinary ingestion does not restore a soft-deleted document.
+When editing an existing note, use the current revision UUID as its `tribal_base_revision` transport metadata, following the [Markdown revision contract](tribal_markdown_spec.md). The token is removed from canonical stored Markdown. An unchanged canonical document and path remain a no-op with a stale or absent token; a new document ignores a syntactically valid foreign token. A stale authored edit returns `E_REVISION_CONFLICT`; reload the current note, reconcile the edit, and retry. Ordinary ingestion does not restore a soft-deleted document.
+
+Deletion and restoration are explicit lifecycle operations requiring the current authored revision even when the requested state is already set:
+
+```bash
+tribal delete "$DOCUMENT_ID" --knowledge-base research --expected-revision "$REVISION_ID" --json
+tribal restore "$DOCUMENT_ID" --knowledge-base research --expected-revision "$REVISION_ID" --json
+```
+
+These operations preserve revisions, chunks, and vectors, refresh current link bindings, and invalidate search continuations when lifecycle changes. Restoration rechecks the reserved namespace; it does not perform indexing repair.
 
 ## Run indexing and repair work
 
