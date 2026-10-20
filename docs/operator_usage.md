@@ -28,6 +28,15 @@ MySQL 9.7 Community must be running with an existing empty database and a user a
 
 Use your shell or secret manager to set credentials. Keep them outside tracked files. Validation, chunk preview, lexical search, and revision/context reads do not need OpenAI credentials. Only database commands read the database configuration.
 
+The supplied `compose.yaml` starts a development MySQL service from the pinned official Community image. In addition to the connection variables, set `TRIBAL_MYSQL_ROOT_PASSWORD` through your secret manager for initial container setup, then run:
+
+```bash
+docker compose -f compose.yaml up -d --wait mysql
+tribal db migrate --json
+```
+
+Compose creates `TRIBAL_DB_NAME` and the application user on the first initialization of its persistent volume. Changing those environment values later does not rewrite an existing volume's users or databases. The service binds to loopback, uses a 64 MiB packet limit, and disables binary logging for this single-node development setup. An external MySQL server needs the same minimum packet capacity, database-scoped schema/data privileges, and permission to create the dimension-validation triggers; servers with binary logging may require additional administrator privileges for trigger creation. The CLI never creates the selected database itself.
+
 ## Initialize a knowledge base
 
 ```bash
@@ -45,7 +54,7 @@ tribal profile activate "$PROFILE_ID" --knowledge-base research
 
 Registry commands are idempotent for matching configuration. Profiles are immutable: changing model, dimensions, wrapper, tokenizer, normalization, or limits requires a distinct profile key. The default profile uses OpenAI `text-embedding-3-small`, 1,536 dimensions, cosine similarity, and the frozen title/headings wrapper.
 
-`db migrate` applies executable versioned migrations and checks the stored checksums. Use it before other database operations when installing or upgrading. Do not edit an already applied migration: resolve checksum errors against the original installation and restore the matching migration files before retrying. This release targets fresh development databases; migration of an undocumented external deployment is outside its scope.
+`db migrate` applies executable versioned migrations and checks the stored checksums. Use it before other database operations when installing or upgrading. Do not edit an already applied migration: resolve checksum errors against the original installation and restore the matching migration files before retrying. This release targets fresh development databases; migration of an undocumented external deployment is outside its scope. MySQL DDL implicitly commits, so a failed initial migration can leave a partial schema even when its version was not recorded. Inspect the migration diagnostic and server permissions; for a disposable fresh development database, recreate that database before rerunning migrations. Preserve and back up valuable data before any recovery action. Content transactions use normal rollback; migration DDL is a separate boundary.
 
 ## Validate, preview, and ingest
 
