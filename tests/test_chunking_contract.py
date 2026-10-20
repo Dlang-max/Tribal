@@ -108,6 +108,16 @@ def test_exact_soft_boundary_counts_source_bytes(size):
     assert ("W_OVERSIZED_BLOCK" in diagnostic_codes(result)) is (size > 4096)
 
 
+@pytest.mark.parametrize("combined_bytes", [4096, 4097])
+def test_adjacent_units_pack_together_if_and_only_if_complete_source_fits(combined_bytes):
+    first = "a" * 2046 + "\n\n"
+    second = "b" * (combined_bytes - len(first.encode()) - 2) + "\n\n"
+    result = layout(note(first + second))
+    assert len((first + second).encode()) == combined_bytes
+    assert contents(result) == ([first + second] if combined_bytes == 4096 else [first, second])
+    assert "W_OVERSIZED_BLOCK" not in diagnostic_codes(result)
+
+
 def test_greedy_packing_attaches_blank_gaps_to_previous_unit_and_does_not_rebalance():
     first, second, third = "a" * 2998 + "\n\n", "b" * 1998 + "\n\n", "c" * 998 + "\n\n"
     result = layout(note(first + second + third))
@@ -124,7 +134,7 @@ def test_greedy_packing_attaches_blank_gaps_to_previous_unit_and_does_not_rebala
     "\\[\n" + "x = y + z\n\n" * 400 + "\\]\n\n",
     "> " + "> quoted\n>\n" * 500 + "> last\n\n",
     "<!--\n" + "opaque\n\n" * 600 + "-->\n\n",
-    "[label]: https://example.test/\n" + "    continuation " + "x" * 5000 + "\n\n",
+    '[label]: https://example.test/\n    "' + "x" * 5000 + '"\n\n',
     "[^footnote]: reference\n" + "    continuation " + "x" * 5000 + "\n\n",
 ])
 def test_oversized_protected_blocks_are_kept_whole(protected):
