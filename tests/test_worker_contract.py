@@ -397,3 +397,21 @@ def test_reconstructed_input_hash_mismatch_is_discarded_without_vector_publicati
     assert result["state"] == "discarded"
     assert jobs(mysql_db, active_kb)[0]["state"] == "discarded"
     assert execute(mysql_db, "SELECT COUNT(*) AS n FROM chunk_embeddings WHERE chunk_id=%s", (row["chunk_id"],))[0]["n"] == 0
+
+
+def test_global_worker_claims_by_database_availability_then_job_id(mysql_db, active_kb, make_note):
+    from tribal.embeddings import run_worker_once
+    ingest(mysql_db, active_kb, {"a.md": make_note("first global candidate\n"),
+                                "b.md": make_note("second global candidate\n"),
+                                "c.md": make_note("third global candidate\n")})
+    rows = jobs(mysql_db, active_kb)
+    # Give this isolated test's jobs priority over prior retained fixture jobs;
+    # database time still controls lease/attempt deadlines.
+    execute(mysql_db, "UPDATE embedding_jobs SET available_at=%s WHERE id=%s", ("2001-01-01 00:00:00", rows[0]["id"]))
+    execute(mysql_db, "UPDATE embedding_jobs SET available_at=%s WHERE id=%s", ("2000-01-01 00:00:00", rows[1]["id"]))
+    execute(mysql_db, "UPDATE embedding_jobs SET available_at=%s WHERE id=%s", ("2001-01-01 00:00:00", rows[2]["id"]))
+    provider = Provider()
+    results = [run_worker_once(mysql_db, provider, knowledge_base=None) for _ in range(3)]
+    assert [result["job_id"] for result in results] == [rows[1]["id"], rows[0]["id"], rows[2]["id"]]
+    assert all(result["state"] == "succeeded" for result in results)
+    assert len(provider.calls) == 3

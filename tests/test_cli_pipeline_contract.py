@@ -130,4 +130,10 @@ def test_cli_end_to_end_nonsoftware_vault_without_git(mysql_config, tmp_path):
     assert context["chunks"][0]["content"] == "## Observation\n\nSeed germination needle.\n"
     replaced = run("rechunk", head["document_id"], "--knowledge-base", key)
     assert not set(replaced["chunk_ids"]).intersection(head["chunk_ids"])
+    deleted = run("delete", head["document_id"], "--knowledge-base", key, "--expected-revision", head["revision_id"])
+    assert deleted["deleted"] is True and deleted["changed"] is True
+    assert run("search", "needle", "--knowledge-base", key, "--mode", "lexical", "--lexical-mode", "literal")["hits"] == []
+    restored = run("restore", head["document_id"], "--knowledge-base", key, "--expected-revision", head["revision_id"])
+    assert restored["deleted"] is False and restored["changed"] is True
+    assert len(run("search", "needle", "--knowledge-base", key, "--mode", "lexical", "--lexical-mode", "literal")["hits"]) == 1
     assert not marker.exists(), "nonsoftware import/search/read must not probe Git"
