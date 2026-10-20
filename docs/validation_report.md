@@ -1,13 +1,17 @@
 # Chunking, storage, and search validation report
 
 **Date:** 2026-10-20  
-**Integration source snapshot:** `57006f3f2d7b281db53747b761ecea6d5e9c5152` for the acceptance and search measurements below.
+| Validation | Snapshot |
+|---|---|
+| Full acceptance source | `6f2b193` |
+| Full acceptance tests | `11f7b89` |
+| Search benchmark source | `57006f3f2d7b281db53747b761ecea6d5e9c5152` |
 
 ## Acceptance checks
 
-The latest saved full run against the pinned MySQL 9.7.2 Community Docker image completed with **527 passed and 2 skipped**. One skip is the optional live OpenAI smoke; the other is the opt-in exact-search benchmark, which was run separately and passed. Source and test revisions were unchanged during that run. Coverage was **91.6118% of statements** and **84.9687% of branches (814/958)**. The statement target of 90% is met; the strict 85% branch target is not. The displayed rounded branch value of 85% does not meet a strict threshold. One additional branch must be covered and the full aggregate run repeated before calling the coverage gate complete.
+The full run against the pinned MySQL 9.7.2 Community Docker image completed with **531 passed and 2 skipped in 88.89 seconds**. One skip is the optional live OpenAI smoke; the other is the opt-in exact-search benchmark, which was run separately and passed. Source and test trees remained stable during that run. Coverage was **91.7910% of statements (2,091/2,278)** and **85.0731% of branches (815/958)**, meeting the strict 90% statement and 85% branch targets.
 
-The CLI's independent real-MySQL suite passed **22 checks**. The component acceptance suites and fixes have also received scoped review. A final whole-integration review remains pending. The full validation does not include a live OpenAI request; no API key was supplied, and deterministic-provider coverage verifies local behavior only.
+The CLI's independent real-MySQL suite passed **22 checks**. Component acceptance suites and fixes received scoped review, and the final whole-integration review passed with no Critical or Important findings (see the task workspace's `review-final-integration.md`). The full validation does not include a live OpenAI request; no API key was supplied, and deterministic-provider coverage verifies local behavior only. After the aggregate run, assertion-only test follow-up `0e2f71d` passed four focused tests in 2.10 seconds. A post-merge aggregate rerun including that follow-up remains pending.
 
 MySQL verification used the pinned official Community 9.7.2 image. MySQL rejects CHECK constraints over VECTOR values, so the schema enforces vector dimensions with tested BEFORE INSERT and BEFORE UPDATE triggers. The development Compose configuration disables binary logging. Production-like installations with binary logging may require elevated migration privileges to create the triggers.
 
@@ -25,4 +29,4 @@ Machine-readable benchmark data is kept in [exact-search-2026-10-20.json](benchm
 
 ## Completion gates
 
-The remaining gates are a fresh strict-coverage run reaching at least 85% branches and the final whole-integration review. After those pass, perform the user-requested integration into `main`. Live OpenAI smoke testing remains optional and requires an API key; report its result separately from offline and database-backed validation.
+The strict coverage gates and final whole-integration review have passed. The remaining check is a post-merge aggregate rerun that includes `0e2f71d`. The feature is ready for the authorized merge to `main`. Live OpenAI smoke testing remains optional and requires an API key; report its result separately from offline and database-backed validation.
