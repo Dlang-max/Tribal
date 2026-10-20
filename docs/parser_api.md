@@ -24,7 +24,7 @@ A document result has `valid: bool`, `path: str`, `diagnostics: list`, `document
 - `body`: preserved normalized body.
 - `content_hash`: lowercase SHA-256 hex over canonical UTF-8 bytes.
 - `base_revision`: transport UUID string or `None`.
-- `headings`: objects with `level`, extracted `text`, `line`, `column`.
+- `headings`: objects with `level`, extracted `text`, `line`, `column`. Locations point to the opening heading syntax (the ATX marker or first Setext text character), after any container prefix.
 - `blocks`: structural objects with `kind`, `start_byte`, `end_byte`, `heading_path`; tables, fenced code, and Mermaid must be identifiable as `table`, `code`, `mermaid` respectively. Ranges index canonical UTF-8 bytes, half open.
 - `links`: internal occurrences with `ordinal`, `raw_link`, `target_text`, nullable `target_anchor`, nullable `source_anchor`, `kind` (`wiki` or `markdown`), nullable `target_document_id`, `resolution` (`resolved`, `unresolved`, `ambiguous`), `line`, `column`. Occurrence order and lexical exclusions follow the format spec. Standalone validation can resolve self links; unavailable external document targets remain unresolved warnings.
 

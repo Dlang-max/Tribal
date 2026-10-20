@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tribal-markdown"
+version = "1.0.0"
+description = "Source-preserving parser and validator for Tribal Markdown v1"
+requires-python = ">=3.12"
+dependencies = ["ruamel.yaml>=0.18,<0.19", "markdown-it-py>=3,<5", "unicodedata2==15.1.0"]
+
+[project.optional-dependencies]
+test = ["pytest>=7.4,<9", "pytest-cov>=7,<8"]
+
+[project.scripts]
+tribal = "tribal.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+tribal = ["CaseFolding-15.1.0.txt", "UNICODE-LICENSE.txt"]
+
+[tool.coverage.run]
+branch = true
+source = ["tribal"]
+patch = ["subprocess"]
+
+[tool.coverage.report]
+show_missing = true
