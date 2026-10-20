@@ -2,7 +2,7 @@
 
 Tribal validates Markdown locally, previews source chunks, publishes a selected batch to MySQL, and indexes it for search. The [implementation contracts](implementation_contracts.md) describe the Python APIs and result fields; [parser usage](parser_usage.md) covers standalone validation. Commands below describe the operator interface. Component and external-service verification must be reported separately from command availability.
 
-Current verification status (2026-10-20): parser/chunker and database-backed services are implemented, individually reviewed, and passed the final whole-integration review with no Critical or Important findings. The full acceptance run passed 531 tests with 2 opt-in skips and met both strict coverage gates; details are in the [validation report](validation_report.md). The feature is ready for the authorized merge to `main`; a post-merge aggregate check remains pending. Credentialed OpenAI verification remains unrun because no API key was supplied; deterministic-provider tests do not establish live provider success.
+Current verification status (2026-10-20): parser/chunker and database-backed services are implemented, reviewed, and merged to `main`. The fresh post-merge acceptance run passed 531 tests with 2 opt-in skips and met both strict coverage gates; the final whole-integration review found no Critical or Important findings. See the [validation report](validation_report.md) for exact evidence. Credentialed OpenAI verification remains unrun because no API key was supplied; deterministic-provider tests do not establish live provider success.
 
 ## Install and configure
 
