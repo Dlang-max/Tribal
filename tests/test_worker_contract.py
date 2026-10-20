@@ -387,3 +387,13 @@ def test_sdk_connection_and_timeout_failures_release_claim_for_retry(mysql_db, a
     assert row["state"] == "queued" and row["attempts"] == 1
     assert row["claim_token"] is row["lease_expires_at"] is None
     assert len(provider.calls) == 1
+
+
+def test_reconstructed_input_hash_mismatch_is_discarded_without_vector_publication(mysql_db, active_kb, make_note):
+    ingest(mysql_db, active_kb, {"one.md": make_note()})
+    row = jobs(mysql_db, active_kb)[0]
+    execute(mysql_db, "UPDATE embedding_jobs SET input_hash=%s WHERE id=%s", (b"x" * 32, row["id"]))
+    result = worker(mysql_db, active_kb, Provider())
+    assert result["state"] == "discarded"
+    assert jobs(mysql_db, active_kb)[0]["state"] == "discarded"
+    assert execute(mysql_db, "SELECT COUNT(*) AS n FROM chunk_embeddings WHERE chunk_id=%s", (row["chunk_id"],))[0]["n"] == 0

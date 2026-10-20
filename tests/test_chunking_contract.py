@@ -26,6 +26,7 @@ def layout(authored, **kwargs):
     assert result["chunker_version"] == POLICY
     body = canonical["body"]
     body_start = len(source) - len(body.encode("utf-8"))
+    assert result["body_start_byte"] == body_start
     cursor = body_start
     for ordinal, chunk in enumerate(chunks):
         assert chunk["ordinal"] == ordinal
