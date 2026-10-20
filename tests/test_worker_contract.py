@@ -415,3 +415,23 @@ def test_global_worker_claims_by_database_availability_then_job_id(mysql_db, act
     assert [result["job_id"] for result in results] == [rows[1]["id"], rows[0]["id"], rows[2]["id"]]
     assert all(result["state"] == "succeeded" for result in results)
     assert len(provider.calls) == 3
+
+
+def test_inactive_profile_can_be_backfilled_and_completed_before_activation(mysql_db, active_kb, make_note):
+    from tribal.embeddings import activate_profile, backfill_embeddings, indexing_status
+    from tribal.storage import ensure_profile, get_knowledge_base
+    ingest(mysql_db, active_kb, {"one.md": make_note()})
+    assert worker(mysql_db, active_kb, Provider())["state"] == "succeeded"
+    profile = ensure_profile(mysql_db, key="inactive-" + uuid.uuid4().hex, dimensions=3,
+                             configuration=active_kb["profile"]["configuration"])["profile"]
+    queued = backfill_embeddings(mysql_db, knowledge_base=active_kb["key"], profile_id=profile["id"])
+    assert queued["enqueued"] == 1
+    assert indexing_status(mysql_db, knowledge_base=active_kb["key"], profile_id=profile["id"])["pending"] == 1
+    assert get_knowledge_base(mysql_db, knowledge_base=active_kb["key"])["knowledge_base"]["active_profile_id"] == active_kb["profile"]["id"]
+    provider = Provider()
+    assert worker(mysql_db, active_kb, provider)["state"] == "succeeded"
+    assert len(provider.calls) == 1
+    assert indexing_status(mysql_db, knowledge_base=active_kb["key"], profile_id=profile["id"])["ready"] is True
+    activated = activate_profile(mysql_db, knowledge_base=active_kb["key"], profile_id=profile["id"])
+    assert activated["ok"] is True
+    assert get_knowledge_base(mysql_db, knowledge_base=active_kb["key"])["knowledge_base"]["active_profile_id"] == profile["id"]
