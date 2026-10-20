@@ -278,3 +278,16 @@ def test_native_vector_dimension_guards_reject_both_write_paths(mysql_db, active
         assert rows == []
     else:
         assert bytes(rows[0]["vector"]) == struct.pack("<fff", 1, 0, 0)
+
+
+def test_unrecognized_future_schema_version_is_refused(mysql_db):
+    from tribal.errors import TribalError
+    from tribal.storage import migrate
+    version = "9999-future-contract-" + uuid.uuid4().hex
+    sql(mysql_db, "INSERT INTO schema_migrations(version,checksum) VALUES (%s,%s)", (version, bytes(32)))
+    try:
+        with pytest.raises(TribalError) as failure:
+            migrate(mysql_db)
+        assert failure.value.code == "E_MIGRATION"
+    finally:
+        sql(mysql_db, "DELETE FROM schema_migrations WHERE version=%s", (version,))

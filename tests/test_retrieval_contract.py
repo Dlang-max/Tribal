@@ -356,3 +356,87 @@ def test_context_diagram_priority_uses_range_distance_then_source_position(mysql
     assert len(response["chunks"]) == 2
     assert selected in [chunk["content"] for chunk in response["chunks"]]
     assert [chunk["start_byte"] for chunk in response["chunks"]] == sorted(chunk["start_byte"] for chunk in response["chunks"])
+
+
+def test_hybrid_union_retains_candidates_absent_from_either_ranking(mysql_db, active_kb, make_note):
+    identities = sorted([str(uuid.uuid4()) for _ in range(3)], key=lambda value: uuid.UUID(value).bytes)
+    docs = {"lexical.md": make_note("needle\n", title="needle title", id=identities[0]),
+            "overlap.md": make_note("needle\n", id=identities[1]),
+            "semantic.md": make_note("different passage\n", id=identities[2])}
+    publish(mysql_db, active_kb, docs, {"semantic.md": [1, 0, 0], "overlap.md": [1, 1, 0]})
+    response = search(mysql_db, active_kb, "needle", mode="hybrid", lexical_mode="literal", provider=QueryProvider())
+    assert [hit["path"] for hit in response["hits"]] == ["overlap.md", "lexical.md", "semantic.md"]
+    assert [hit["score"] for hit in response["hits"]] == pytest.approx([2 / 62, 1 / 61, 1 / 61], abs=1e-15)
+    assert response["indexing"]["pending"] == 1
+
+
+def test_continuation_normalizes_filters_and_retains_requested_fulltext_identity_after_fallback(mysql_db, active_kb, make_note):
+    from tribal.errors import TribalError
+    publish(mysql_db, active_kb, {f"{i}.md": make_note(f"Go {i}\n") for i in range(3)})
+    first = search(mysql_db, active_kb, "Go", mode="lexical", domains=["research", "research"], statuses=["active", "active"], limit=1)
+    assert first["lexical_mode"] == "literal" and first["next_cursor"]
+    second = search(mysql_db, active_kb, "Go", mode="lexical", domains=["research"], statuses=["active"], cursor=first["next_cursor"], limit=2)
+    assert [hit["rank"] for hit in second["hits"]] == [2, 3]
+    with pytest.raises(TribalError) as failure:
+        search(mysql_db, active_kb, "Go", mode="lexical", lexical_mode="literal", domains=["research"], statuses=["active"], cursor=first["next_cursor"])
+    assert failure.value.code == "E_CURSOR_INVALID"
+
+
+@pytest.mark.parametrize("query", ["", " ", "\n\t"])
+def test_empty_query_is_rejected_before_provider_call(mysql_db, active_kb, query):
+    from tribal.errors import TribalError
+    provider = QueryProvider()
+    with pytest.raises(TribalError) as failure:
+        search(mysql_db, active_kb, query, provider=provider)
+    assert failure.value.code == "E_ARGUMENT"
+    assert provider.calls == []
+
+
+@pytest.mark.parametrize("cursor", ["", "not-a-cursor", 123, True])
+def test_malformed_cursor_is_explicitly_invalid(mysql_db, active_kb, cursor):
+    from tribal.errors import TribalError
+    with pytest.raises(TribalError) as failure:
+        search(mysql_db, active_kb, "needle", mode="lexical", cursor=cursor)
+    assert failure.value.code == "E_CURSOR_INVALID"
+
+
+@pytest.mark.parametrize("limit", [True, 1.5, "2"])
+def test_page_limit_requires_integer_excluding_booleans(mysql_db, active_kb, limit):
+    from tribal.errors import TribalError
+    with pytest.raises(TribalError) as failure:
+        search(mysql_db, active_kb, "needle", mode="lexical", limit=limit)
+    assert failure.value.code == "E_ARGUMENT"
+
+
+def test_invalid_query_vector_is_not_a_lexical_fallback(mysql_db, active_kb, make_note):
+    from tribal.errors import TribalError
+    publish(mysql_db, active_kb, {"one.md": make_note("needle\n")}, {"one.md": [1, 0, 0]})
+    with pytest.raises(TribalError) as failure:
+        search(mysql_db, active_kb, "needle", provider=QueryProvider([0, 0, 0]))
+    assert failure.value.code == "E_EMBEDDING_VECTOR"
+
+
+def test_context_rejects_foreign_chunk_identity_and_negative_budget(mysql_db, active_kb, make_note):
+    from tribal.errors import TribalError
+    from tribal.retrieval import read_context
+    heads = publish(mysql_db, active_kb, {"first.md": make_note(), "second.md": make_note()})["documents"]
+    first, second = heads["first.md"], heads["second.md"]
+    with pytest.raises(TribalError) as failure:
+        read_context(mysql_db, knowledge_base=active_kb["key"], document_id=first["document_id"], revision_id=first["revision_id"], chunk_id=second["chunk_ids"][0])
+    assert failure.value.code == "E_NOT_FOUND"
+    with pytest.raises(TribalError) as failure:
+        read_context(mysql_db, knowledge_base=active_kb["key"], document_id=first["document_id"], revision_id=first["revision_id"], chunk_id=first["chunk_ids"][0], budget_bytes=-1)
+    assert failure.value.code == "E_ARGUMENT"
+
+
+def test_cursor_cannot_continue_in_a_different_knowledge_base(mysql_db, active_kb, make_note):
+    from tribal.errors import TribalError
+    from tribal.retrieval import search as operation
+    from tribal.storage import ensure_knowledge_base
+    publish(mysql_db, active_kb, {f"{i}.md": make_note("needle\n") for i in range(3)})
+    first = search(mysql_db, active_kb, "needle", mode="lexical", lexical_mode="literal", limit=1)
+    other_key = "cursor-other-" + uuid.uuid4().hex
+    ensure_knowledge_base(mysql_db, key=other_key, name="Other corpus")
+    with pytest.raises(TribalError) as failure:
+        operation(mysql_db, "needle", knowledge_base=other_key, mode="lexical", lexical_mode="literal", cursor=first["next_cursor"])
+    assert failure.value.code == "E_CURSOR_INVALID"
