@@ -112,7 +112,8 @@ def _retry_after(headers):
             seconds = (retry_at - datetime.now(timezone.utc)).total_seconds()
         except (ValueError, TypeError, OverflowError):
             return None
-    return max(0.0, seconds) if math.isfinite(seconds) else None
+        return max(0.0, seconds) if math.isfinite(seconds) else None
+    return seconds if math.isfinite(seconds) and seconds >= 0 else None
 
 
 class OpenAIProvider:
