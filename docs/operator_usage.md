@@ -2,6 +2,8 @@
 
 Tribal validates Markdown locally, previews source chunks, publishes a selected batch to MySQL, and indexes it for search. The [implementation contracts](implementation_contracts.md) describe the Python APIs and result fields; [parser usage](parser_usage.md) covers standalone validation. Commands below describe the operator interface. Component and external-service verification must be reported separately from command availability.
 
+Current verification status (2026-10-20): parser validation and pure chunk preview pass their regression/contract suites. Database-backed command integration checks are pending the reviewed storage, publication, embeddings, and retrieval components and their real MySQL tests. The database workflows below document the CLI contract while those checks are pending. A credentialed OpenAI smoke test is a separate opt-in check; deterministic-provider tests do not establish live provider success.
+
 ## Install and configure
 
 Use Python 3.12 or later. From the project directory:
