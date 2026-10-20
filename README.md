@@ -16,3 +16,11 @@ python -m pip install -e '.[test]'
 tribal validate tests/acceptance_fixtures/markdown_v1/baseline --json
 python -m pytest --cov=tribal --cov-branch
 ```
+
+## Codebase context vault
+
+Open `docs/context-vault` as a vault in Obsidian, then start with
+[Home](docs/context-vault/Home.md). The linked notes explain the codebase,
+architecture, and practical CLI workflows. Obsidian's Graph view shows their
+relationships without community plugins or a database connection. The vault
+remains files only; it has not been imported into the Tribal database.
