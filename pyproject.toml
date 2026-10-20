@@ -7,7 +7,14 @@ name = "tribal-markdown"
 version = "1.0.0"
 description = "Source-preserving parser and validator for Tribal Markdown v1"
 requires-python = ">=3.12"
-dependencies = ["ruamel.yaml>=0.18,<0.19", "markdown-it-py>=3,<5", "unicodedata2==15.1.0"]
+dependencies = [
+    "ruamel.yaml==0.18.17",
+    "markdown-it-py==4.2.0",
+    "unicodedata2==15.1.0",
+    "mysql-connector-python==26.7.0",
+    "openai==3.35.1",
+    "tiktoken==0.14.0",
+]
 
 [project.optional-dependencies]
 test = ["pytest>=7.4,<9", "pytest-cov>=7,<8"]
@@ -19,7 +26,7 @@ tribal = "tribal.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-tribal = ["CaseFolding-15.1.0.txt", "UNICODE-LICENSE.txt"]
+tribal = ["CaseFolding-15.1.0.txt", "UNICODE-LICENSE.txt", "migrations/*.sql"]
 
 [tool.coverage.run]
 branch = true

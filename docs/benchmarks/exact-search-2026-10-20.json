@@ -1,0 +1,20 @@
+{
+  "documents": 1000,
+  "eligible_vectors": 1000,
+  "dimensions": 1536,
+  "trials": 3,
+  "provider": "deterministic fixed query vector; no live API",
+  "scope": "public semantic search including DB scan, exact ranking, session materialization and page provenance",
+  "exact_top_k_verified": 100,
+  "materialized_results_per_session": 1000,
+  "latency_seconds": [
+    8.738307031002478,
+    8.069142113992712,
+    7.782920283003477
+  ],
+  "p50_seconds": 8.069142113992712,
+  "p95_seconds": 8.738307031002478,
+  "peak_tracemalloc_bytes": 21214813,
+  "capacity_error_verified": "E_SEARCH_CAPACITY",
+  "complete": true
+}

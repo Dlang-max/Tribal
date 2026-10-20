@@ -1,0 +1,37 @@
+{
+  "source_before": "57006f3f2d7b281db53747b761ecea6d5e9c5152",
+  "host_before": {
+    "utc": "2026-10-20T19:04:43.793485+00:00",
+    "load_average": [
+      4.38037109375,
+      10.2373046875,
+      16.7236328125
+    ],
+    "logical_cpus": 16,
+    "memory": {
+      "MemTotal": "16083860 kB",
+      "MemAvailable": "568920 kB",
+      "SwapTotal": "0 kB",
+      "SwapFree": "0 kB"
+    },
+    "cgroup": {}
+  },
+  "source_after": "57006f3f2d7b281db53747b761ecea6d5e9c5152",
+  "host_after": {
+    "utc": "2026-10-20T19:05:34.043212+00:00",
+    "load_average": [
+      6.8134765625,
+      9.9990234375,
+      16.30078125
+    ],
+    "logical_cpus": 16,
+    "memory": {
+      "MemTotal": "16083860 kB",
+      "MemAvailable": "622408 kB",
+      "SwapTotal": "0 kB",
+      "SwapFree": "0 kB"
+    },
+    "cgroup": {}
+  },
+  "source_stable": true
+}
