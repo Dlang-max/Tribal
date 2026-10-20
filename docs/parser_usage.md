@@ -1,6 +1,6 @@
 # Validate Tribal Markdown
 
-The Python library validates the format in [the v1 specification](tribal_markdown_spec.md). It does not need a Git repository, MySQL, or network access. Git contexts are checked only when explicitly declared in a note.
+The Python library validates the format in [the v1 specification](tribal_markdown_spec.md). It does not need a Git repository, MySQL, or network access. Git contexts are checked only when explicitly declared in a note. See [operator usage](operator_usage.md) for chunk preview, MySQL publication, indexing, and retrieval.
 
 ## Install
 
