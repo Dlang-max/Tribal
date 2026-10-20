@@ -196,7 +196,5 @@ def test_readonly_transaction_keeps_one_committed_snapshot(mysql_db, registered_
 
 def test_server_vector_functions_preserve_ieee_float32(mysql_db):
     values = [0.1, -0.2, 0.3]
-    row = sql(mysql_db, "SELECT VECTOR_TO_STRING(STRING_TO_VECTOR(%s)) AS value", (json.dumps(values),))[0]
-    restored = json.loads(row["value"])
-    expected = [struct.unpack("<f", struct.pack("<f", value))[0] for value in values]
-    assert restored == pytest.approx(expected, abs=1e-8)
+    row = sql(mysql_db, "SELECT CAST(STRING_TO_VECTOR(%s) AS BINARY) AS value", (json.dumps(values),))[0]
+    assert bytes(row["value"]) == struct.pack("<fff", *values)
