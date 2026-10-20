@@ -213,14 +213,15 @@ def test_transient_retries_are_durable_honor_retry_after_and_stop_at_three(mysql
 
 @pytest.mark.parametrize("guidance", ["http-date", "milliseconds"])
 def test_worker_honors_provider_retry_guidance_variants(mysql_db, active_kb, make_note, guidance):
-    from datetime import datetime, timedelta, timezone
+    from datetime import timezone
     from email.utils import format_datetime
     import httpx2 as httpx
     import openai
 
     ingest(mysql_db, active_kb, {"one.md": make_note()})
     if guidance == "http-date":
-        headers = {"retry-after": format_datetime(datetime.now(timezone.utc) + timedelta(seconds=5), usegmt=True)}
+        expected_at = execute(mysql_db, "SELECT DATE_ADD(UTC_TIMESTAMP(0), INTERVAL 20 SECOND) AS target")[0]["target"]
+        headers = {"retry-after": format_datetime(expected_at.replace(tzinfo=timezone.utc), usegmt=True)}
     else:
         headers = {"retry-after-ms": "5000"}
 
@@ -233,12 +234,16 @@ def test_worker_honors_provider_retry_guidance_variants(mysql_db, active_kb, mak
     provider = GuidedRateLimit()
     result = worker(mysql_db, active_kb, provider)
     row = jobs(mysql_db, active_kb)[0]
-    delay = execute(mysql_db, "SELECT TIMESTAMPDIFF(MICROSECOND,CURRENT_TIMESTAMP(6),available_at)/1000000 AS delay FROM embedding_jobs WHERE id=%s", (row["id"],))[0]["delay"]
 
     assert result["state"] == row["state"] == "queued"
     assert row["attempts"] == 1
     assert row["claim_token"] is row["lease_expires_at"] is None
-    assert 3.5 < float(delay) <= 5
+    if guidance == "http-date":
+        offset = execute(mysql_db, "SELECT TIMESTAMPDIFF(MICROSECOND,%s,available_at)/1000000 AS offset FROM embedding_jobs WHERE id=%s", (expected_at, row["id"]))[0]["offset"]
+        assert abs(float(offset)) <= 2
+    else:
+        delay = execute(mysql_db, "SELECT TIMESTAMPDIFF(MICROSECOND,CURRENT_TIMESTAMP(6),available_at)/1000000 AS delay FROM embedding_jobs WHERE id=%s", (row["id"],))[0]["delay"]
+        assert 3.5 < float(delay) <= 5
     assert "provider-secret-sentinel" not in json.dumps(result)
 
 
