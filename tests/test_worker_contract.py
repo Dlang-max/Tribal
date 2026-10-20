@@ -397,3 +397,41 @@ def test_reconstructed_input_hash_mismatch_is_discarded_without_vector_publicati
     assert result["state"] == "discarded"
     assert jobs(mysql_db, active_kb)[0]["state"] == "discarded"
     assert execute(mysql_db, "SELECT COUNT(*) AS n FROM chunk_embeddings WHERE chunk_id=%s", (row["chunk_id"],))[0]["n"] == 0
+
+
+def test_global_worker_claims_by_database_availability_then_job_id(mysql_db, active_kb, make_note):
+    from tribal.embeddings import run_worker_once
+    ingest(mysql_db, active_kb, {"a.md": make_note("first global candidate\n"),
+                                "b.md": make_note("second global candidate\n"),
+                                "c.md": make_note("third global candidate\n")})
+    rows = jobs(mysql_db, active_kb)
+    # Give this isolated test's jobs priority over prior retained fixture jobs;
+    # database time still controls lease/attempt deadlines.
+    execute(mysql_db, "UPDATE embedding_jobs SET available_at=%s WHERE id=%s", ("2001-01-01 00:00:00", rows[0]["id"]))
+    execute(mysql_db, "UPDATE embedding_jobs SET available_at=%s WHERE id=%s", ("2000-01-01 00:00:00", rows[1]["id"]))
+    execute(mysql_db, "UPDATE embedding_jobs SET available_at=%s WHERE id=%s", ("2001-01-01 00:00:00", rows[2]["id"]))
+    provider = Provider()
+    results = [run_worker_once(mysql_db, provider, knowledge_base=None) for _ in range(3)]
+    assert [result["job_id"] for result in results] == [rows[1]["id"], rows[0]["id"], rows[2]["id"]]
+    assert all(result["state"] == "succeeded" for result in results)
+    assert len(provider.calls) == 3
+
+
+def test_inactive_profile_can_be_backfilled_and_completed_before_activation(mysql_db, active_kb, make_note):
+    from tribal.embeddings import activate_profile, backfill_embeddings, indexing_status
+    from tribal.storage import ensure_profile, get_knowledge_base
+    ingest(mysql_db, active_kb, {"one.md": make_note()})
+    assert worker(mysql_db, active_kb, Provider())["state"] == "succeeded"
+    profile = ensure_profile(mysql_db, key="inactive-" + uuid.uuid4().hex, dimensions=3,
+                             configuration=active_kb["profile"]["configuration"])["profile"]
+    queued = backfill_embeddings(mysql_db, knowledge_base=active_kb["key"], profile_id=profile["id"])
+    assert queued["enqueued"] == 1
+    assert indexing_status(mysql_db, knowledge_base=active_kb["key"], profile_id=profile["id"])["pending"] == 1
+    assert get_knowledge_base(mysql_db, knowledge_base=active_kb["key"])["knowledge_base"]["active_profile_id"] == active_kb["profile"]["id"]
+    provider = Provider()
+    assert worker(mysql_db, active_kb, provider)["state"] == "succeeded"
+    assert len(provider.calls) == 1
+    assert indexing_status(mysql_db, knowledge_base=active_kb["key"], profile_id=profile["id"])["ready"] is True
+    activated = activate_profile(mysql_db, knowledge_base=active_kb["key"], profile_id=profile["id"])
+    assert activated["ok"] is True
+    assert get_knowledge_base(mysql_db, knowledge_base=active_kb["key"])["knowledge_base"]["active_profile_id"] == profile["id"]

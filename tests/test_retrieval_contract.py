@@ -440,3 +440,44 @@ def test_cursor_cannot_continue_in_a_different_knowledge_base(mysql_db, active_k
     with pytest.raises(TribalError) as failure:
         operation(mysql_db, "needle", knowledge_base=other_key, mode="lexical", lexical_mode="literal", cursor=first["next_cursor"])
     assert failure.value.code == "E_CURSOR_INVALID"
+
+
+@pytest.mark.parametrize("corruption", ["vector_hash", "zero_vector", "failed_job_hash", "oversized_job_hash"])
+def test_search_indexing_counts_require_current_profile_and_exact_input_identity(mysql_db, active_kb, make_note, corruption):
+    from tribal.embeddings import indexing_status
+    vectors = {"one.md": [1, 0, 0]} if corruption in {"vector_hash", "zero_vector"} else None
+    head = publish(mysql_db, active_kb, {"one.md": make_note("needle\n")}, vectors)["documents"]["one.md"]
+    chunk_id = head["chunk_ids"][0]
+    if corruption == "vector_hash":
+        execute(mysql_db, "UPDATE chunk_embeddings SET input_hash=%s WHERE chunk_id=%s", (b"x" * 32, chunk_id))
+    elif corruption == "zero_vector":
+        execute(mysql_db, "UPDATE chunk_embeddings SET embedding=STRING_TO_VECTOR(%s) WHERE chunk_id=%s", ("[0,0,0]", chunk_id))
+    else:
+        state = "failed" if corruption == "failed_job_hash" else "oversized"
+        execute(mysql_db, "UPDATE embedding_jobs SET input_hash=%s,state=%s WHERE chunk_id=%s", (b"x" * 32, state, chunk_id))
+    expected = dict(total=1, embedded=0, pending=1, oversized=0, failed=0, ready=False)
+    status = indexing_status(mysql_db, knowledge_base=active_kb["key"])
+    assert {key: status[key] for key in expected} == expected
+    response = search(mysql_db, active_kb, "needle", mode="lexical", lexical_mode="literal")
+    assert [hit["path"] for hit in response["hits"]] == ["one.md"]
+    assert {key: response["indexing"][key] for key in expected} == expected
+
+
+@pytest.mark.parametrize("with_document", [False, True])
+def test_lexical_search_without_active_profile_reports_pending_or_complete_empty_corpus(mysql_db, registered_kb, with_document):
+    from tribal.errors import TribalError
+    from tribal.embeddings import indexing_status
+    from tribal.publication import ingest_vault
+    from tribal.retrieval import search as operation
+    from acceptance_helpers import note
+    if with_document:
+        authored = note("needle\n", id=str(uuid.uuid4()), knowledge_base=registered_kb["key"])
+        assert ingest_vault(mysql_db, {"one.md": authored}, knowledge_base=registered_kb["key"])["ok"] is True
+    response = operation(mysql_db, "needle", knowledge_base=registered_kb["key"], mode="lexical", lexical_mode="literal")
+    assert response["profile_id"] is None
+    assert len(response["hits"]) == int(with_document)
+    expected = dict(total=int(with_document), embedded=0, pending=int(with_document), oversized=0, failed=0, ready=not with_document)
+    assert {key: response["indexing"][key] for key in expected} == expected
+    with pytest.raises(TribalError) as failure:
+        indexing_status(mysql_db, knowledge_base=registered_kb["key"])
+    assert failure.value.code == "E_NOT_FOUND"
