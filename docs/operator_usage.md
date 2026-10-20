@@ -58,6 +58,28 @@ Registry commands are idempotent for matching configuration. Profiles are immuta
 
 `db migrate` applies executable versioned migrations and checks the stored checksums. Use it before other database operations when installing or upgrading. Do not edit an already applied migration: resolve checksum errors against the original installation and restore the matching migration files before retrying. This release targets fresh development databases; migration of an undocumented external deployment is outside its scope. MySQL DDL implicitly commits, so a failed initial migration can leave a partial schema even when its version was not recorded. Inspect the migration diagnostic and server permissions; for a disposable fresh development database, recreate that database before rerunning migrations. Preserve and back up valuable data before any recovery action. Content transactions use normal rollback; migration DDL is a separate boundary.
 
+## First vault ingest
+
+After the database, knowledge base, domain, and embedding profile are configured, validate and publish the vault from its root:
+
+```bash
+VAULT=/path/to/your/vault
+tribal validate "$VAULT" --knowledge-base research --domain botany --json
+tribal chunk "$VAULT/Observation.md" --json  # optional read-only preview
+tribal ingest "$VAULT" --knowledge-base research --author-id researcher --json
+tribal index worker --knowledge-base research
+```
+
+Validation checks the selected files and assignments; `chunk` is an optional read-only preview and does not write to MySQL. Vault-root ingestion atomically validates the selected batch (including links between its notes) and preserves nested relative paths. Ingest persists canonical revisions and chunks and queues embedding jobs; it does not call the embedding provider. A standalone file ingest uses that file's basename as its vault path, so ingest the vault root when its nested namespace matters.
+
+The continuous worker creates embeddings from queued jobs. In a second terminal, poll indexing status:
+
+```bash
+tribal index status --knowledge-base research --json
+```
+
+When status reports indexing ready, stop the continuous worker with **Ctrl-C**. The worker's provider calls require `OPENAI_API_KEY`; validation, preview, and ingest do not.
+
 ## Validate, preview, and ingest
 
 ```bash
