@@ -1,12 +1,12 @@
 # Tribal Markdown Chunking Strategy v1
 
-Status: **Proposed; chunker not yet implemented**
+Status: **Pure chunker implemented; service acceptance reported separately**
 
 Date: **2026-10-20**
 
-This document defines a proposed retrieval chunking policy for validated Tribal Markdown. It builds on [the Markdown format specification](tribal_markdown_spec.md#8-structural-parsing-and-chunking), [the parser API](parser_api.md), and [the storage schema](tribal_schema.md). The existing parser and validator are implemented; the chunker, embedding pipeline, and database publication described here are future work.
+This document defines the implemented retrieval chunking policy for validated Tribal Markdown. It builds on [the Markdown format specification](tribal_markdown_spec.md#8-structural-parsing-and-chunking), [the parser API](parser_api.md), and [the storage schema](tribal_schema.md). The parser, validator, shared source structure, and pure chunker are implemented. See [operator usage](operator_usage.md) for commands and [implementation contracts](implementation_contracts.md) for publication, embedding, and retrieval boundaries; those services require separate integration verification.
 
-The words MUST, MUST NOT, SHOULD, and MAY describe the proposed implementation contract. This policy adds detail to the Markdown specification without changing its authoring rules.
+The words MUST, MUST NOT, SHOULD, and MAY describe the frozen implementation contract. This policy adds detail to the Markdown specification without changing its authoring rules.
 
 ## 1. Purpose and approach
 
@@ -200,7 +200,7 @@ Ownership, contexts, applicability, evidence, and verification remain revision m
 
 Keep source chunking separate from embedding formatting. The source target counts `content` only. The embedding operation counts the **complete** input, including title, heading context, and any model-required formatting, using that profile's actual counting method.
 
-A proposed text wrapper, to be frozen under an embedding profile, is:
+The text wrapper frozen under the initial embedding profile is:
 
 ```text
 Title: <metadata.title>
@@ -238,21 +238,17 @@ Publication follows the existing schema and Markdown contracts: compute the layo
 
 Embedding jobs carry `chunk_id`, profile ID, and exact `input_hash`. Before publication, verify that the original chunk, profile, and reconstructed input still match. Discard stale jobs instead of redirecting their vectors to replacement passages. No Git commands or external evidence checks are required for any chunking step.
 
-## 11. Parser integration work still required
+## 11. Shared parser structure
 
-The current public parser output is useful input, but it is **not yet a complete chunking intermediate representation**:
+`tribal.structure` supplies the internal source representation used by validation and `chunk_document`. It preserves canonical UTF-8 bytes, body start, submitted-input location mapping, root-heading containment and plain-text eligibility, immediate list-item ranges, definitions, and protected code/diagram/math regions. Source ranges identify sections independently of nullable or duplicated heading anchors.
 
-- `blocks` can contain overlapping parent containers and nested rich blocks. Normalize this hierarchy into a nonoverlapping source partition before packing.
-- Root heading blocks provide section starts, but the public `headings` array also includes nested headings and does not expose plain-heading eligibility. Use a shared structural view to establish containment and anchor eligibility.
-- The public output does not expose immediate list-item ranges, definition continuation ranges, or all opaque-region boundaries, including typed display-math spans. Add those to a shared parser projection before claiming full support for the policy.
-- Generic gap blocks have empty heading paths. Derive their context from the enclosing section rather than treating them as introductions.
-- Preserve or expose the canonical body-start offset and transport-removal source mapping. Do not estimate UTF-8 offsets using character counts or normalized-input line numbers.
+The public parser API remains compatible. Its `blocks` may overlap when a parent container contains a rich block; consumers should use the shared internal structure for chunk boundaries rather than treating those public blocks as a ready-made partition. The internal representation attaches source gaps to complete units and derives heading context from section containment, including gaps and introductions.
 
-Prefer a shared internal structural representation, or a versioned extension to the parser output, over a second set of regular expressions that can disagree about code, links, math, or containers. These are implementation prerequisites; this document does not change the parser's existing public API or claim that it already emits chunks.
+The chunker checks contiguous ranges, UTF-8 boundaries, exact source equality, and complete canonical-body reconstruction before returning a layout. It returns no chunks for invalid authored input and raises `E_CHUNK_INVARIANT` for structural failures. This does not turn preserved Mermaid or math into validated executable content.
 
 ## 12. Acceptance and evaluation
 
-Implementation tests should establish the following before the policy is published:
+Acceptance checks cover the following; pure chunking and database/provider checks are separate verification categories:
 
 | Case | Expected behavior |
 |---|---|
@@ -273,6 +269,6 @@ Implementation tests should establish the following before the policy is publish
 | Replacement finishes while an old embedding job is in flight | Fresh chunk IDs; old result discarded. |
 | Botany, history, mathematics, ordinary folders, and explicit Git contexts | Same structural policy; no inferred working context. |
 
-Check source-partition invariants for every output, not only selected examples: contiguous ranges, valid UTF-8 boundaries, exact source equality, and complete body reconstruction. Tests for future storage publication must be distinguished from pure chunker tests.
+Check source-partition invariants for every output, not only selected examples: contiguous ranges, valid UTF-8 boundaries, exact source equality, and complete body reconstruction. Storage publication and provider checks must be distinguished from pure chunker tests.
 
 Evaluate retrieval separately using representative questions and expected evidence passages across domains. Record whether supporting passages were retrieved, how much irrelevant context was returned, context bytes and actual model tokens, oversized/unembeddable unit frequency, and the effect of neighbor expansion. Compare against a whole-document baseline and any candidate target sizes using the same corpus and retrieval setup. Do not present the initial 4,096-byte choice as a measured optimum until those evaluations exist.

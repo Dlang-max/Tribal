@@ -164,6 +164,9 @@ def _run_operation(args, db):
         if errors:
             return dict(ok=False, diagnostics=errors)
         return ingest_vault(db, documents, knowledge_base=args.knowledge_base, author_type=args.author_type, author_id=args.author_id, change_summary=args.change_summary)
+    if args.command in {'delete', 'restore'}:
+        from .publication import set_document_deleted
+        return set_document_deleted(db, knowledge_base=args.knowledge_base, document_id=args.document_id, expected_revision=args.expected_revision, deleted=args.command == 'delete')
     if args.command == 'rechunk':
         from .publication import rechunk_revision
         return rechunk_revision(db, knowledge_base=args.knowledge_base, document_id=args.document_id, revision_id=args.revision_id)
@@ -261,6 +264,11 @@ def _parser():
     command.add_argument('document_id')
     knowledge_base(command)
     command.add_argument('--revision-id')
+    for name in ('delete', 'restore'):
+        command = leaf(commands, name, f'{name} a document with an expected current revision')
+        command.add_argument('document_id')
+        knowledge_base(command)
+        command.add_argument('--expected-revision', required=True)
     profiles = group('profile', 'immutable embedding profiles')
     command = leaf(profiles, 'ensure', 'create or verify an embedding profile')
     command.add_argument('--key', default='openai-text-embedding-3-small-v1')
