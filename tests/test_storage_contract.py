@@ -198,3 +198,57 @@ def test_server_vector_functions_preserve_ieee_float32(mysql_db):
     values = [0.1, -0.2, 0.3]
     row = sql(mysql_db, "SELECT CAST(STRING_TO_VECTOR(%s) AS BINARY) AS value", (json.dumps(values),))[0]
     assert bytes(row["value"]) == struct.pack("<fff", *values)
+
+
+@pytest.mark.parametrize("dimensions", [True, False, 0, -1, 16384, 3.5, "3"])
+def test_profile_dimensions_require_positive_nonboolean_integer(mysql_db, dimensions):
+    from tribal.errors import TribalError
+    from tribal.storage import ensure_profile
+    configuration = dict(wrapper="tribal-title-headings-v1", encoding="cl100k_base", max_input_tokens=8192,
+                         distance="cosine", normalization="l2-float32-v1")
+    with pytest.raises(TribalError) as failure:
+        ensure_profile(mysql_db, key="bad-dim-" + uuid.uuid4().hex, dimensions=dimensions, configuration=configuration)
+    assert failure.value.code == "E_ARGUMENT"
+
+
+@pytest.mark.parametrize("changes", [
+    {"wrapper": "unsupported"}, {"distance": "dot_product"}, {"normalization": "none"},
+    {"encoding": "not-a-registered-encoding"}, {"max_input_tokens": 0},
+    {"max_input_tokens": -1}, {"max_input_tokens": True}, {"max_input_tokens": 1.5},
+    {"max_input_tokens": 8193}, {"additional": float("nan")}, {"additional": float("inf")},
+])
+def test_profile_rejects_unsupported_or_nonfinite_configuration(mysql_db, changes):
+    from tribal.errors import TribalError
+    from tribal.storage import ensure_profile
+    configuration = dict(wrapper="tribal-title-headings-v1", encoding="cl100k_base", max_input_tokens=8192,
+                         distance="cosine", normalization="l2-float32-v1")
+    with pytest.raises(TribalError) as failure:
+        ensure_profile(mysql_db, key="bad-config-" + uuid.uuid4().hex, configuration={**configuration, **changes})
+    assert failure.value.code == "E_ARGUMENT"
+    json.dumps(failure.value.as_dict(), allow_nan=False)
+
+
+@pytest.mark.parametrize("missing", ["wrapper", "encoding", "max_input_tokens", "distance", "normalization"])
+def test_profile_requires_complete_explicit_configuration(mysql_db, missing):
+    from tribal.errors import TribalError
+    from tribal.storage import ensure_profile
+    configuration = dict(wrapper="tribal-title-headings-v1", encoding="cl100k_base", max_input_tokens=8192,
+                         distance="cosine", normalization="l2-float32-v1")
+    del configuration[missing]
+    with pytest.raises(TribalError) as failure:
+        ensure_profile(mysql_db, key="missing-config-" + uuid.uuid4().hex, configuration=configuration)
+    assert failure.value.code == "E_ARGUMENT"
+
+
+def test_custom_model_positive_limit_and_extra_finite_json_are_immutable(mysql_db):
+    from tribal.errors import TribalError
+    from tribal.storage import ensure_profile
+    key = "custom-profile-" + uuid.uuid4().hex
+    config = dict(wrapper="tribal-title-headings-v1", encoding="cl100k_base", max_input_tokens=20000,
+                  distance="cosine", normalization="l2-float32-v1", additional={"revision": [1, 2.5, "界"]})
+    result = ensure_profile(mysql_db, key=key, provider="test", model="explicit-test-model", dimensions=3, configuration=config)
+    assert result["profile"]["configuration"] == config
+    with pytest.raises(TribalError) as failure:
+        ensure_profile(mysql_db, key=key, provider="test", model="explicit-test-model", dimensions=3,
+                       configuration={**config, "additional": {"revision": [2]}})
+    assert failure.value.code == "E_CONFLICT"
