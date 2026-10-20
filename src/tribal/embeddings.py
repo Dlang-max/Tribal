@@ -7,8 +7,10 @@ import hashlib
 import json
 import math
 import struct
+from uuid import UUID, uuid4
 
 from .errors import TribalError
+from .storage import _one, _row, _uuid_bytes, advance_generations, lock_knowledge_base
 
 
 def format_document_input(title: str, heading_path: list[str], content: str) -> str:
@@ -147,3 +149,37 @@ class OpenAIProvider:
         if len(response.data) != 1:
             raise TribalError("E_EMBEDDING_VECTOR", "Provider did not return exactly one embedding.")
         return list(response.data[0].embedding)
+
+
+def enqueue_chunks(connection, *, knowledge_base_id, profile_id, chunks, title):
+    """Enqueue exact stored chunk identities in the caller's KB transaction.
+
+    The caller holds the knowledge-base lock and owns generation advancement.
+    Token classification and compatible-vector reuse happen in the worker.
+    """
+    result = {"enqueued": 0, "reused": 0, "diagnostics": []}
+    if profile_id is None:
+        return result
+    kb_id = _uuid_bytes(knowledge_base_id)
+    selected_profile = _uuid_bytes(profile_id)
+    if _one(connection, "SELECT id FROM embedding_profiles WHERE id=%s", (selected_profile,)) is None:
+        raise TribalError("E_NOT_FOUND", "Embedding profile is not registered.")
+    for chunk in chunks:
+        revision_id = _uuid_bytes(chunk["revision_id"])
+        stored = _one(
+            connection,
+            "SELECT c.id FROM document_chunks c JOIN document_revisions r ON r.id=c.revision_id "
+            "WHERE c.id=%s AND c.revision_id=%s AND r.knowledge_base_id=%s",
+            (chunk["id"], revision_id, kb_id),
+        )
+        if stored is None:
+            raise TribalError("E_CONFLICT", "Chunk identity does not belong to the selected knowledge base and revision.")
+        digest = bytes.fromhex(input_hash(format_document_input(title, chunk["heading_path"], chunk["content"])))
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "INSERT INTO embedding_jobs (knowledge_base_id,chunk_id,revision_id,profile_id,input_hash) "
+                "VALUES (%s,%s,%s,%s,%s) ON DUPLICATE KEY UPDATE id=id",
+                (kb_id, chunk["id"], revision_id, selected_profile, digest),
+            )
+            result["enqueued"] += int(cursor.rowcount == 1)
+    return result
