@@ -179,7 +179,7 @@ def test_rechunk_during_provider_call_discards_stale_identity(mysql_db, active_k
 
 
 def test_transient_retries_are_durable_honor_retry_after_and_stop_at_three(mysql_db, active_kb, make_note):
-    import httpx
+    import httpx2 as httpx
     import openai
     ingest(mysql_db, active_kb, {"one.md": make_note()})
     before = generation(mysql_db, active_kb)
@@ -348,7 +348,7 @@ def test_database_enforces_duplicate_job_identity_and_running_claim_invariant(my
 @pytest.mark.parametrize("status_code, expected_state", [(408, "queued"), (409, "queued"),
     (500, "queued"), (503, "queued"), (400, "failed"), (401, "failed"), (403, "failed"), (422, "failed")])
 def test_provider_http_failures_have_durable_transient_or_terminal_classification(mysql_db, active_kb, make_note, status_code, expected_state):
-    import httpx
+    import httpx2 as httpx
     import openai
     ingest(mysql_db, active_kb, {"one.md": make_note()})
     before = generation(mysql_db, active_kb)
@@ -371,7 +371,7 @@ def test_provider_http_failures_have_durable_transient_or_terminal_classificatio
 
 @pytest.mark.parametrize("timeout", [False, True])
 def test_sdk_connection_and_timeout_failures_release_claim_for_retry(mysql_db, active_kb, make_note, timeout):
-    import httpx
+    import httpx2 as httpx
     import openai
     ingest(mysql_db, active_kb, {"one.md": make_note()})
     class ConnectionFailure(Provider):
