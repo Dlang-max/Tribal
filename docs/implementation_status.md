@@ -1,37 +1,35 @@
 # Chunking, storage, and search implementation status
 
-The [implementation plan](superpowers/plans/2026-10-20-chunking-storage-search.md) is **partially implemented**. Work is retained on `chunking/integration` and isolated feature branches. Work has resumed after an account usage interruption; the remaining services are being implemented. This is not a completed milestone.
+The [implementation plan](superpowers/plans/2026-10-20-chunking-storage-search.md) is implemented on the integration branch, and all service code has received component or scoped review. Final strict branch-coverage verification and the whole-integration review remain open; see the [validation report](validation_report.md) for evidence, limits, and current measurements. The feature has not yet been merged into `main`.
 
-## Delivered and reviewed
+## Delivered
 
-| Component | State |
+| Area | Delivered capability |
 |---|---|
-| Contracts | Frozen [API/schema contracts](implementation_contracts.md), pinned runtime dependencies and hash-checked lock. |
-| Structure/chunking | Shared parser structure, exact source-preserving chunks, protected units and source mapping; exported `chunk_document`. |
-| Storage | Executable MySQL migrations, native vectors, registry/profile APIs, transactions, generation primitives and pinned Docker image. |
-| Embedding primitives | Exact input wrapper/hash/token counting, float32 normalization, deterministic provider and OpenAI adapter. |
+| Contracts and structure | Frozen API/schema contracts, shared source structure, exact UTF-8 source-preserving chunks, protected units, location mapping, and compatible parser exports. |
+| Storage | Versioned MySQL migrations, native vectors with tested dimension triggers, registry/profile APIs, transactions, and generation primitives. |
+| Embeddings | Exact input wrapper/hash/token counting, float32 normalization, deterministic test provider, OpenAI adapter, durable jobs, retry/backfill/status, and profile activation. |
+| Publication | Atomic batch ingestion, revision checks, namespace swaps, link refresh, soft delete/restore, and explicit rechunking. |
+| Retrieval | Semantic/lexical/hybrid ranking, materialized cursor sessions, revision-pinned reads, and source context. |
+| CLI and operations | Validate/chunk/ingest, indexing and profile operations, deletion/restoration, search/read/context, JSON diagnostics, Docker development setup, and operator recovery guidance. |
 
-These components passed GPT-6 Luna high reviews, including scoped reviews of corrections. The existing parser API remains compatible. Only the dedicated tester agent authored new tests and test data.
+The dedicated tester authored the added acceptance tests and test data. Existing parser interfaces remain compatible. Component and correction reviews are recorded in the task workspace; the remaining required check is the final whole-integration review.
 
-The latest coordinator verification against the official pinned MySQL 9.7.2 Community Docker container passed **365 tests**, with **one skipped credentialed OpenAI smoke test**, in 7.56 seconds. This verifies the currently integrated components; it does not cover unimplemented services. Storage separately passed all 15 real MySQL tests against both Docker and the extracted official server executable. After resumption, 21 CLI checks passed; the CLI owner also verified real database migration and registry/profile commands. The runtime lock also passed a fresh hash-checked installation, dependency check and tokenizer/import smoke check.
+## Verification still in progress
 
-MySQL 9.7.2 rejects a CHECK constraint referencing a VECTOR column. Tested BEFORE INSERT and BEFORE UPDATE triggers enforce vector dimensions instead, while preserving native VECTOR storage and the profile dimension foreign key. Development Docker configuration disables binary logging; a deployment with logging enabled needs sufficient migration privileges for trigger creation.
+The latest saved full acceptance run against the pinned MySQL 9.7.2 Community Docker image reports **527 passed and 2 skipped**. The skipped cases are the opt-in credentialed OpenAI smoke checks. It reports **91.6118% statement coverage** and **84.9687% branch coverage** (814 of 958 branches); branch coverage is strictly below the 85% target despite rounded display showing 85%. One additional branch is needed to clear that threshold. Do not treat this as the final threshold-passing run until a fresh aggregate run confirms it.
+
+The full suite includes the CLI and service acceptance checks. The CLI-specific suite separately passed all 22 checks against the same MySQL version. The exact-search benchmark and a second untraced operator-latency measurement are documented in the validation report. No live OpenAI request has been verified because no API key was supplied.
+
+MySQL 9.7.2 rejects a CHECK constraint that references a VECTOR column. Tested BEFORE INSERT and BEFORE UPDATE triggers enforce vector dimensions while preserving native VECTOR storage and the profile-dimension foreign key. The supplied single-node development Compose configuration disables binary logging; external servers with logging enabled may require additional privileges to create those triggers.
 
 ## Remaining work
 
-| Branch | Remaining action |
+| Work | State |
 |---|---|
-| `chunking/cli` | CLI commands and operator guide are reviewed and integrated; final service-pipeline checks remain. |
-| `chunking/embeddings` | Implement durable queue/worker fencing, transaction-local enqueue, backfill/retry/status and profile activation. |
-| `chunking/publication` | Implement atomic ingestion, lifecycle changes, complete link refresh, path swaps/history and explicit rechunking. |
-| `chunking/retrieval` | Implement ranking, durable search sessions/pagination, revision-pinned reads and diagram context. |
-| `chunking/tests` | Acceptance suites for the remaining services and a full-path 1,536-dimensional search benchmark are committed; run them against reviewed implementations, measure full coverage and add missing cases. |
-| `chunking/integration` | Integrate reviewed components, run all Docker acceptance checks, benchmark and final whole-integration review; report the credentialed OpenAI smoke separately. |
+| Coverage threshold | Add or exercise the missing branch, then rerun the aggregate suite with strict branch coverage. |
+| Whole-integration review | Final independent review is pending after the threshold run. |
+| OpenAI smoke | Optional credentialed check remains unrun; deterministic-provider tests do not prove live provider availability. |
+| Main integration | User-requested merge to `main` remains to be completed after review. |
 
-The plan's final 90% statement/85% branch coverage thresholds, full Docker pipeline, search benchmark and live OpenAI verification have not been achieved or claimed. No PR, push or merge into `main` has been performed for the feature implementation.
-
-## Resume information
-
-The coordinator's detailed ledger, branch-specific briefs, author/reviewer reports, review diffs, and private test-server startup/configuration are retained in the ignored `.superpowers/sdd/2026-10-20-chunking-storage-search/` workspace. Resume from that ledger; do not recreate completed branches. All feature worktrees were clean when the usage limit interrupted the agents.
-
-The integration checkout also contains an unrelated untracked order-management benchmark plan. It was left untouched.
+The branch-specific reports, test metadata, coverage artifacts, and private database startup/configuration are retained in the ignored `.superpowers/sdd/2026-10-20-chunking-storage-search/` workspace. Runtime configuration files may contain credentials and must not be copied into project documentation.
