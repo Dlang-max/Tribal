@@ -1,0 +1,659 @@
+{
+  "fixture_version": 1,
+  "status": "design acceptance fixtures; no importer or runtime integration is implemented",
+  "domains": [
+    "documentation",
+    "database",
+    "authentication",
+    "botany"
+  ],
+  "files": {
+    "baseline/Guide.md": {
+      "document_id": "00000000-0000-4000-8000-000000000001",
+      "base_revision": "10000000-0000-4000-8000-000000000001",
+      "canonical_sha256": "be525df8758adde8af07cc83a18fdfdbb4d2234b90219349f63c7e476dface84"
+    },
+    "baseline/authentication/Local configuration.md": {
+      "document_id": "00000000-0000-4000-8000-000000000009",
+      "base_revision": "10000000-0000-4000-8000-000000000009",
+      "canonical_sha256": "a9f02e69c743f9dc0f15f425f1a815e3979977aa1652ccba238694b21e5df4d9"
+    },
+    "baseline/authentication/Startup.md": {
+      "document_id": "00000000-0000-4000-8000-000000000003",
+      "base_revision": "10000000-0000-4000-8000-000000000003",
+      "canonical_sha256": "9d5a6b56dfa8506e8012205c979c2e3a0a2b3d74a9f0e64011a7bb382ef2dc61"
+    },
+    "baseline/botany/Germination observations.md": {
+      "document_id": "00000000-0000-4000-8000-000000000008",
+      "base_revision": "10000000-0000-4000-8000-000000000008",
+      "canonical_sha256": "b220191e0a3b5191408c41c4519391d51cf0b08da80be2f7ae393e6e20e8cb3c"
+    },
+    "baseline/database/Guide.md": {
+      "document_id": "00000000-0000-4000-8000-000000000002",
+      "base_revision": "10000000-0000-4000-8000-000000000002",
+      "canonical_sha256": "dc974e0e66dd74d7937143b22162943176e7b8b88694204fd767ac78f0889c01"
+    },
+    "baseline/database/Setup.md": {
+      "document_id": "00000000-0000-4000-8000-000000000004",
+      "base_revision": "10000000-0000-4000-8000-000000000004",
+      "canonical_sha256": "c43422115b1171cc6974c41ebf56d4a304a95713d9a20e5c0e0e8808cbdc2cd1"
+    },
+    "overlays/concurrent_create/lower.md": {
+      "document_id": "00000000-0000-4000-8000-000000000007",
+      "base_revision": "10000000-0000-4000-8000-000000000007",
+      "canonical_sha256": "4976100f8d9eab39cd64ef7713af7218e291d01b40bf242f2f3435ef0e0668c9"
+    },
+    "overlays/concurrent_create/upper.md": {
+      "document_id": "00000000-0000-4000-8000-000000000006",
+      "base_revision": "10000000-0000-4000-8000-000000000006",
+      "canonical_sha256": "6258731a2fae6c9fffda86a832c52c935a49b6d69bf1e76a238fa38595dee372"
+    },
+    "overlays/context_variants/Custom survey.md": {
+      "document_id": "00000000-0000-4000-8000-000000000012",
+      "base_revision": "10000000-0000-4000-8000-000000000012",
+      "canonical_sha256": "8aa7a75b23e73844175e203a944a2c9873274052dcf3356b0e640cf8091fc819"
+    },
+    "overlays/context_variants/Terminology.md": {
+      "document_id": "00000000-0000-4000-8000-000000000011",
+      "base_revision": "10000000-0000-4000-8000-000000000011",
+      "canonical_sha256": "98008d8304fe1dfe01ac72536d5c58b86611f245bbd10742813937ca9a32c3a7"
+    },
+    "overlays/context_variants/Two source trees.md": {
+      "document_id": "00000000-0000-4000-8000-000000000010",
+      "base_revision": "10000000-0000-4000-8000-000000000010",
+      "canonical_sha256": "3a5615f6c64ce2c9b675048ff210673922a60544d9e931b72c336b7e101700ea"
+    },
+    "overlays/new_ambiguity/Setup.md": {
+      "document_id": "00000000-0000-4000-8000-000000000005",
+      "base_revision": "10000000-0000-4000-8000-000000000005",
+      "canonical_sha256": "d6146ff4f71dff65b5d5f50377bc033aad126eac2aff84881e63557e317cced9"
+    },
+    "overlays/properties_edit/Startup.md": {
+      "document_id": "00000000-0000-4000-8000-000000000003",
+      "base_revision": "10000000-0000-4000-8000-000000000003",
+      "canonical_sha256": "d7980489942002b54382bdda817632e25e7f2c2d83d87c8cca5f58b51125441a"
+    },
+    "overlays/rename_with_links/Startup.md": {
+      "document_id": "00000000-0000-4000-8000-000000000003",
+      "base_revision": "10000000-0000-4000-8000-000000000003",
+      "canonical_sha256": "b5be5e074ffd1cbd75ff13a3803841812d890ffeb99d2499c4aea7be13268877"
+    },
+    "overlays/stale_edit/Startup.md": {
+      "document_id": "00000000-0000-4000-8000-000000000003",
+      "base_revision": "10000000-0000-4000-8000-000000000999",
+      "canonical_sha256": "d7980489942002b54382bdda817632e25e7f2c2d83d87c8cca5f58b51125441a"
+    },
+    "overlays/transport_only/Guide.md": {
+      "document_id": "00000000-0000-4000-8000-000000000001",
+      "base_revision": "10000000-0000-4000-8000-000000000001",
+      "canonical_sha256": "be525df8758adde8af07cc83a18fdfdbb4d2234b90219349f63c7e476dface84"
+    }
+  },
+  "baseline": {
+    "Guide.md": {
+      "file": "baseline/Guide.md",
+      "current_revision": "10000000-0000-4000-8000-000000000001",
+      "document_id": "00000000-0000-4000-8000-000000000001"
+    },
+    "database/Guide.md": {
+      "file": "baseline/database/Guide.md",
+      "current_revision": "10000000-0000-4000-8000-000000000002",
+      "document_id": "00000000-0000-4000-8000-000000000002"
+    },
+    "authentication/Startup.md": {
+      "file": "baseline/authentication/Startup.md",
+      "current_revision": "10000000-0000-4000-8000-000000000003",
+      "document_id": "00000000-0000-4000-8000-000000000003"
+    },
+    "database/Setup.md": {
+      "file": "baseline/database/Setup.md",
+      "current_revision": "10000000-0000-4000-8000-000000000004",
+      "document_id": "00000000-0000-4000-8000-000000000004"
+    },
+    "botany/Germination observations.md": {
+      "file": "baseline/botany/Germination observations.md",
+      "current_revision": "10000000-0000-4000-8000-000000000008",
+      "document_id": "00000000-0000-4000-8000-000000000008"
+    },
+    "authentication/Local configuration.md": {
+      "file": "baseline/authentication/Local configuration.md",
+      "current_revision": "10000000-0000-4000-8000-000000000009",
+      "document_id": "00000000-0000-4000-8000-000000000009"
+    }
+  },
+  "baseline_links": [
+    {
+      "source_path": "authentication/Startup.md",
+      "ordinal": 0,
+      "raw_link": "[[database/Setup\\|Connection setup]]",
+      "target_document_id": "00000000-0000-4000-8000-000000000004",
+      "target_anchor": null,
+      "diagnostic": null
+    },
+    {
+      "source_path": "authentication/Startup.md",
+      "ordinal": 1,
+      "raw_link": "[[Setup]]",
+      "target_document_id": "00000000-0000-4000-8000-000000000004",
+      "target_anchor": null,
+      "diagnostic": null
+    },
+    {
+      "source_path": "authentication/Startup.md",
+      "ordinal": 2,
+      "raw_link": "[[Guide]]",
+      "target_document_id": null,
+      "target_anchor": null,
+      "diagnostic": "W_LINK_AMBIGUOUS"
+    },
+    {
+      "source_path": "authentication/Startup.md",
+      "ordinal": 3,
+      "raw_link": "[Root guide](../Guide.md)",
+      "target_document_id": "00000000-0000-4000-8000-000000000001",
+      "target_anchor": null,
+      "diagnostic": null
+    },
+    {
+      "source_path": "authentication/Startup.md",
+      "ordinal": 4,
+      "raw_link": "[[database/Guide]]",
+      "target_document_id": "00000000-0000-4000-8000-000000000002",
+      "target_anchor": null,
+      "diagnostic": null
+    },
+    {
+      "source_path": "authentication/Startup.md",
+      "ordinal": 5,
+      "raw_link": "[[database/Setup#Initialization|Setup details]]",
+      "target_document_id": "00000000-0000-4000-8000-000000000004",
+      "target_anchor": "Initialization",
+      "diagnostic": null
+    }
+  ],
+  "scenarios": [
+    {
+      "name": "unchanged_reimport",
+      "starting_state": "baseline",
+      "writes": [
+        {
+          "file": "baseline/Guide.md",
+          "path": "Guide.md"
+        },
+        {
+          "file": "baseline/database/Guide.md",
+          "path": "database/Guide.md"
+        },
+        {
+          "file": "baseline/authentication/Startup.md",
+          "path": "authentication/Startup.md"
+        },
+        {
+          "file": "baseline/database/Setup.md",
+          "path": "database/Setup.md"
+        },
+        {
+          "file": "baseline/botany/Germination observations.md",
+          "path": "botany/Germination observations.md"
+        },
+        {
+          "file": "baseline/authentication/Local configuration.md",
+          "path": "authentication/Local configuration.md"
+        }
+      ],
+      "expected": {
+        "new_revisions": 0,
+        "graph": "baseline_links"
+      }
+    },
+    {
+      "name": "transport_requote_and_move",
+      "starting_state": "baseline",
+      "writes": [
+        {
+          "file": "overlays/transport_only/Guide.md",
+          "path": "Guide.md"
+        }
+      ],
+      "expected": {
+        "new_revisions": 0,
+        "same_canonical_hash_as": "baseline/Guide.md"
+      }
+    },
+    {
+      "name": "properties_style_metadata_edit",
+      "starting_state": "baseline",
+      "writes": [
+        {
+          "file": "overlays/properties_edit/Startup.md",
+          "path": "authentication/Startup.md"
+        }
+      ],
+      "expected": {
+        "new_revisions": 1,
+        "changed_document_ids": [
+          "00000000-0000-4000-8000-000000000003"
+        ],
+        "verification_state": "verified",
+        "verified_at": "2026-10-20T12:00:00Z",
+        "source_count": 1,
+        "graph": "baseline_links",
+        "actual_obsidian_execution": "not performed"
+      }
+    },
+    {
+      "name": "stale_base_rejects_changed_file",
+      "starting_state": "baseline",
+      "writes": [
+        {
+          "file": "overlays/stale_edit/Startup.md",
+          "path": "authentication/Startup.md"
+        }
+      ],
+      "expected": {
+        "error": "E_REVISION_CONFLICT",
+        "new_revisions": 0,
+        "graph": "baseline_links"
+      }
+    },
+    {
+      "name": "path_only_move",
+      "starting_state": "baseline",
+      "writes": [
+        {
+          "file": "baseline/authentication/Startup.md",
+          "path": "authentication/Startup renamed.md"
+        }
+      ],
+      "expected": {
+        "new_revisions": 1,
+        "changed_document_ids": [
+          "00000000-0000-4000-8000-000000000003"
+        ],
+        "same_canonical_hash_as": "baseline/authentication/Startup.md",
+        "same_document_id": "00000000-0000-4000-8000-000000000003",
+        "graph": "same targets and ordinals as baseline_links, with moved source path"
+      }
+    },
+    {
+      "name": "new_duplicate_refreshes_unchanged_source",
+      "starting_state": "baseline",
+      "writes": [
+        {
+          "file": "overlays/new_ambiguity/Setup.md",
+          "path": "authentication/Setup.md"
+        }
+      ],
+      "expected": {
+        "new_revisions": 1,
+        "changed_document_ids": [
+          "00000000-0000-4000-8000-000000000005"
+        ],
+        "unchanged_source_revision": "10000000-0000-4000-8000-000000000003",
+        "binding_changes": [
+          {
+            "source_document_id": "00000000-0000-4000-8000-000000000003",
+            "ordinal": 1,
+            "target_document_id": null,
+            "diagnostic": "W_LINK_AMBIGUOUS"
+          }
+        ],
+        "other_bindings": "baseline_links"
+      }
+    },
+    {
+      "name": "rename_with_companion_link_edits",
+      "starting_state": "baseline",
+      "writes": [
+        {
+          "file": "baseline/database/Setup.md",
+          "path": "database/Connection setup.md"
+        },
+        {
+          "file": "overlays/rename_with_links/Startup.md",
+          "path": "authentication/Startup.md"
+        }
+      ],
+      "expected": {
+        "new_revisions": 2,
+        "changed_document_ids": [
+          "00000000-0000-4000-8000-000000000003",
+          "00000000-0000-4000-8000-000000000004"
+        ],
+        "setup_canonical_hash_unchanged": true,
+        "all_six_link_targets_and_ordinals": "baseline_links",
+        "updated_target_paths": "database/Connection setup",
+        "publish": "one atomic transaction"
+      }
+    },
+    {
+      "name": "swap_occupied_paths",
+      "starting_state": "baseline",
+      "writes": [
+        {
+          "file": "baseline/Guide.md",
+          "path": "database/Guide.md"
+        },
+        {
+          "file": "baseline/database/Guide.md",
+          "path": "Guide.md"
+        }
+      ],
+      "expected": {
+        "new_revisions": 2,
+        "unchanged_canonical_hashes": true,
+        "final_paths": {
+          "Guide.md": "00000000-0000-4000-8000-000000000002",
+          "database/Guide.md": "00000000-0000-4000-8000-000000000001"
+        },
+        "binding_changes": [
+          {
+            "source_document_id": "00000000-0000-4000-8000-000000000003",
+            "ordinal": 3,
+            "target_document_id": "00000000-0000-4000-8000-000000000002"
+          },
+          {
+            "source_document_id": "00000000-0000-4000-8000-000000000003",
+            "ordinal": 4,
+            "target_document_id": "00000000-0000-4000-8000-000000000001"
+          }
+        ],
+        "other_bindings": "baseline_links",
+        "committed_staging_paths": 0
+      }
+    },
+    {
+      "name": "serialized_portable_collision",
+      "starting_state": "baseline",
+      "writes": [
+        {
+          "file": "overlays/concurrent_create/upper.md",
+          "path": "Setup.md"
+        },
+        {
+          "file": "overlays/concurrent_create/lower.md",
+          "path": "setup.md"
+        }
+      ],
+      "expected": {
+        "execution": "two separate transactions; upper acquires knowledge-base lock first",
+        "upper": "accept one new revision",
+        "lower": "E_PATH after revalidation",
+        "committed_documents_added": 1,
+        "existing_startup_bare_setup": "W_LINK_AMBIGUOUS"
+      }
+    },
+    {
+      "name": "stale_embedding_after_rechunk",
+      "starting_state": "baseline",
+      "writes": [],
+      "expected": {
+        "operation": "replace original chunk set while old job is in flight",
+        "old_chunk_id": 101,
+        "replacement_chunk_id": 201,
+        "old_job_input_hash": "3ae2b80cef684a41423dbaade90c9c8cb6962052a114934e73cd136be1f54cae",
+        "replacement_input_hash": "bd176509f9ffaeb0b0f50d3581bca21dda557e9ca843797b701d716cbda87ceb",
+        "new_authored_revisions": 0,
+        "old_job_result": "discard because chunk 101 no longer exists",
+        "embedding_attached_to_chunk_201": false
+      }
+    },
+    {
+      "name": "two_git_contexts_one_domain",
+      "starting_state": "baseline",
+      "writes": [
+        {
+          "file": "overlays/context_variants/Two source trees.md",
+          "path": "authentication/Two source trees.md"
+        }
+      ],
+      "expected": {
+        "new_revisions": 1,
+        "changed_document_ids": [
+          "00000000-0000-4000-8000-000000000010"
+        ],
+        "context_count": 2,
+        "implicit_git_contexts": 0
+      }
+    },
+    {
+      "name": "same_domain_without_git",
+      "starting_state": "baseline",
+      "writes": [
+        {
+          "file": "overlays/context_variants/Terminology.md",
+          "path": "authentication/Terminology.md"
+        }
+      ],
+      "expected": {
+        "new_revisions": 1,
+        "changed_document_ids": [
+          "00000000-0000-4000-8000-000000000011"
+        ],
+        "context_count": 0,
+        "git_probe": "must not run"
+      }
+    },
+    {
+      "name": "unknown_context_and_source_types",
+      "starting_state": "baseline",
+      "writes": [
+        {
+          "file": "overlays/context_variants/Custom survey.md",
+          "path": "botany/Custom survey.md"
+        }
+      ],
+      "expected": {
+        "new_revisions": 1,
+        "changed_document_ids": [
+          "00000000-0000-4000-8000-000000000012"
+        ],
+        "diagnostic": "W_CONTEXT_UNCHECKED",
+        "preserve_profiles": [
+          "community_survey",
+          "field_record"
+        ]
+      }
+    }
+  ],
+  "lexical_cases": [
+    {
+      "input": "[[Target]](https://example.com)",
+      "internal_occurrences": 1,
+      "interpretation": "wikilink followed by literal parenthesized text"
+    },
+    {
+      "input": "[Outer [[Target]]](https://example.com)",
+      "internal_occurrences": 0,
+      "interpretation": "external Markdown link consumes the label"
+    },
+    {
+      "input": "\\[[Target]]",
+      "internal_occurrences": 0,
+      "interpretation": "escaped opening"
+    },
+    {
+      "input": "[[ Target ]]",
+      "internal_occurrences": 0,
+      "diagnostic": "W_WIKILINK_SYNTAX"
+    },
+    {
+      "input": "[[Target|one|two]]",
+      "internal_occurrences": 0,
+      "diagnostic": "W_WIKILINK_SYNTAX"
+    },
+    {
+      "input": "[[Target",
+      "internal_occurrences": 0,
+      "diagnostic": "W_WIKILINK_SYNTAX"
+    },
+    {
+      "input": "![[Target]]",
+      "internal_occurrences": 0,
+      "interpretation": "opaque embed"
+    }
+  ],
+  "capacity_cases": [
+    {
+      "value": "summary",
+      "generator": "ASCII x repeated 8192 times",
+      "expected": "accept"
+    },
+    {
+      "value": "summary",
+      "generator": "ASCII x repeated 8193 times",
+      "expected": "E_LIMIT"
+    },
+    {
+      "value": "summary",
+      "generator": "U+1F600 repeated 2048 times",
+      "expected": "accept: exactly 8192 UTF-8 bytes"
+    },
+    {
+      "value": "summary",
+      "generator": "U+1F600 repeated 2049 times",
+      "expected": "E_LIMIT"
+    },
+    {
+      "value": "canonical file",
+      "generator": "valid envelope plus one text code fence, total 8388609 UTF-8 bytes",
+      "expected": "E_LIMIT"
+    },
+    {
+      "value": "internal target_text",
+      "generator": "x repeated 1025 times inside one well-formed wikilink",
+      "expected": "E_LIMIT"
+    }
+  ],
+  "lexical_search_cases": [
+    {
+      "query": "Go",
+      "mode": "literal",
+      "expected_matching_document_ids": [
+        "00000000-0000-4000-8000-000000000001"
+      ]
+    },
+    {
+      "query": "CI",
+      "mode": "literal",
+      "expected_matching_document_ids": [
+        "00000000-0000-4000-8000-000000000001"
+      ]
+    },
+    {
+      "query": "检索",
+      "mode": "literal",
+      "expected_matching_document_ids": [
+        "00000000-0000-4000-8000-000000000001"
+      ]
+    },
+    {
+      "query": "%",
+      "mode": "literal",
+      "expected_matching_document_ids": []
+    }
+  ],
+  "knowledge_base": "fixture-kb",
+  "context_cases": [
+    {
+      "file": "baseline/botany/Germination observations.md",
+      "expected": "accept with no Git requirements",
+      "opaque_source_revision": "notebook-page-12"
+    },
+    {
+      "file": "baseline/authentication/Local configuration.md",
+      "expected": "accept non-Git code source rooted in filesystem context",
+      "opaque_source_revision": "configuration-edition-2026-10"
+    },
+    {
+      "file": "overlays/context_variants/Terminology.md",
+      "expected": "accept no contexts despite Git work in another note in the same domain"
+    },
+    {
+      "generator": "change a source context key to absent-key",
+      "expected": "E_CONTEXT"
+    },
+    {
+      "generator": "duplicate a contexts[].key within one note",
+      "expected": "E_CONTEXT"
+    },
+    {
+      "generator": "set git_repository details.commit to abbreviated deadbee",
+      "expected": "E_CONTEXT"
+    },
+    {
+      "generator": "set Git-selected source revision to release-two",
+      "expected": "E_SOURCE"
+    },
+    {
+      "generator": "set experiment-selected source revision to release-two",
+      "expected": "accept; do not impose Git rules"
+    },
+    {
+      "generator": "remove context from relative code locator config/auth.json",
+      "expected": "E_CONTEXT"
+    },
+    {
+      "generator": "use obsolete root repository or scope_commit metadata",
+      "expected": "E_CONTEXT"
+    },
+    {
+      "generator": "set filesystem locator to relative notes/ or .",
+      "expected": "E_CONTEXT; do not supply a working directory"
+    },
+    {
+      "generator": "use publication source with no Git context and revision second-edition",
+      "expected": "accept opaque publication edition"
+    },
+    {
+      "generator": "use publication source with explicit Git context and revision second-edition",
+      "expected": "E_SOURCE; selected context controls revision namespace"
+    },
+    {
+      "generator": "use publication source with explicit Git context, full SHA revision, and details.edition second-edition",
+      "expected": "accept Git-pinned publication with separate edition metadata"
+    }
+  ],
+  "source_resolution_cases": [
+    {
+      "file": "baseline/authentication/Local configuration.md",
+      "source_index": 0,
+      "expected": {
+        "locator": "file:///srv/unversioned-service/config/auth.json",
+        "revision": "configuration-edition-2026-10"
+      }
+    },
+    {
+      "root": "file:///srv/unversioned-service/",
+      "path": "config/auth.json",
+      "expected_locator": "file:///srv/unversioned-service/config/auth.json"
+    },
+    {
+      "file": "baseline/authentication/Startup.md",
+      "source_index": 0,
+      "expected": {
+        "git_repository": "https://example.org/unrelated-service.git",
+        "path": "tests/test_startup.py",
+        "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    {
+      "file": "overlays/context_variants/Two source trees.md",
+      "source_index": 0,
+      "expected": {
+        "git_repository": "https://example.org/application.git",
+        "path": "src/auth.ts",
+        "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    {
+      "file": "overlays/context_variants/Two source trees.md",
+      "source_index": 1,
+      "expected": {
+        "git_repository": "https://example.org/library.git",
+        "path": "lib/identity.ts",
+        "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    }
+  ]
+}
