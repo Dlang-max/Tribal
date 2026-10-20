@@ -132,19 +132,19 @@ def test_greedy_packing_attaches_blank_gaps_to_previous_unit_and_does_not_rebala
     assert "W_OVERSIZED_BLOCK" not in diagnostic_codes(result)
 
 
-@pytest.mark.parametrize("protected", [
-    "```python\n" + "# apparently a heading\n" * 230 + "```\n\n",
-    "~~~mermaid\nflowchart TD\n" + "A-->B\n" * 700 + "~~~\n\n",
-    "    " + ("indented code\n    " * 320) + "last\n\n",
-    "| Value | Result |\n|---|---|\n" + "| 12345 | 67890 |\n" * 280 + "\n",
-    "$$\n" + "x = y + z\n\n" * 400 + "$$\n\n",
-    "\\[\n" + "x = y + z\n\n" * 400 + "\\]\n\n",
-    "> " + "> quoted\n>\n" * 500 + "> last\n\n",
-    "<!--\n" + "opaque\n\n" * 600 + "-->\n\n",
-    '[label]: https://example.test/\n    "' + "x" * 5000 + '"\n\n',
-    "[^footnote]: reference\n" + "    continuation " + "x" * 5000 + "\n\n",
+@pytest.mark.parametrize("expected_kind, protected", [
+    ("code", "```python\n" + "# apparently a heading\n" * 230 + "```\n\n"),
+    ("mermaid", "~~~mermaid\nflowchart TD\n" + "A-->B\n" * 700 + "~~~\n\n"),
+    ("code", "    " + ("indented code\n    " * 320) + "last\n\n"),
+    ("table", "| Value | Result |\n|---|---|\n" + "| 12345 | 67890 |\n" * 280 + "\n"),
+    ("math", "$$\n" + "x = y + z\n\n" * 400 + "$$\n\n"),
+    ("math", "\\[\n" + "x = y + z\n\n" * 400 + "\\]\n\n"),
+    ("blockquote", "> " + "> quoted\n>\n" * 500 + "> last\n\n"),
+    ("opaque", "<!--\n" + "opaque\n\n" * 600 + "-->\n\n"),
+    ("definition", '[label]: https://example.test/\n    "' + "x" * 5000 + '"\n\n'),
+    ("definition", "[^footnote]: reference\n" + "    continuation " + "x" * 5000 + "\n\n"),
 ])
-def test_oversized_protected_blocks_are_kept_whole(protected):
+def test_oversized_protected_blocks_are_kept_whole(expected_kind, protected):
     prefix, suffix = "Before.\n\n", "After.\n"
     result = layout(note(prefix + protected + suffix))
     assert contents(result) == [prefix, protected, suffix]
@@ -157,9 +157,7 @@ def test_oversized_protected_blocks_are_kept_whole(protected):
     assert warning["expected"] == 4096
     assert warning["actual"]["end_byte"] == oversized["end_byte"]
     assert warning["actual"]["bytes"] == len(protected.encode("utf-8"))
-    assert warning["actual"]["unit_kind"] in {
-        "paragraph", "table", "code", "mermaid", "math", "list_item", "list",
-        "blockquote", "definition", "opaque", "other"}
+    assert warning["actual"]["unit_kind"] == expected_kind
 
 
 
@@ -176,6 +174,8 @@ def test_list_item_with_a_nested_diagram_stays_intact_when_oversized():
     result = layout(note(first + second))
     assert contents(result) == [first, second]
     assert "W_OVERSIZED_BLOCK" in diagnostic_codes(result)
+    warning = next(d for d in result["diagnostics"] if d["code"] == "W_OVERSIZED_BLOCK")
+    assert warning["actual"]["unit_kind"] == "list_item"
 
 
 def test_same_canonical_document_has_identical_layout_on_repeated_calls():
@@ -208,3 +208,12 @@ def test_assignment_validation_is_preserved():
     assert result["valid"] is False
     assert result["chunks"] == []
     assert "E_ASSIGNMENT" in diagnostic_codes(result)
+
+
+def test_footnote_continuation_paragraphs_across_blank_lines_stay_one_definition():
+    prefix, suffix = "Before.\n\n", "After.\n"
+    definition = "[^observation]: first paragraph\n\n    " + "x" * 5000 + "\n\n"
+    result = layout(note(prefix + definition + suffix))
+    assert contents(result) == [prefix, definition, suffix]
+    warning = next(d for d in result["diagnostics"] if d["code"] == "W_OVERSIZED_BLOCK")
+    assert warning["actual"]["unit_kind"] == "definition"
