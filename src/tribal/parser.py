@@ -416,7 +416,7 @@ def _markdown(v, body, canonical, canonical_body_offset, submitted_body_line):
         (r'<!--(?:[\s\S]*?)(?:-->|\Z)', 'HTML comment'),
         (r'(?m)^ {0,3}\$\$[^\n]*(?:\n[\s\S]*?(?:^ {0,3}\$\$[^\n]*(?:\n|$)|\Z)|$)', 'math block'),
         (r'(?m)^ {0,3}\\\[[\s\S]*?^ {0,3}\\\][^\n]*(?:\n|$)', 'math block'),
-        (r'(?m)^ {0,3}\[\^[^\]\n]+\]:[^\n]*(?:\n(?: {4,}|\t)[^\n]*)*', 'footnote definition'),
+        (r'(?m)^ {0,3}\[\^[^\]\n]+\]:[^\n]*(?:\n(?:[ \t]*\n)*(?: {4,}|\t)[^\n]*)*', 'footnote definition'),
     ]:
         expression = re.compile(pattern)
         search_from = 0
