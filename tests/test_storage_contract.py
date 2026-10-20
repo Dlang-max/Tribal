@@ -253,3 +253,28 @@ def test_custom_model_positive_limit_and_extra_finite_json_are_immutable(mysql_d
         ensure_profile(mysql_db, key=key, provider="test", model="explicit-test-model", dimensions=3,
                        configuration={**config, "additional": {"revision": [2]}})
     assert failure.value.code == "E_CONFLICT"
+
+
+@pytest.mark.parametrize("write_path", ["insert", "update"])
+def test_native_vector_dimension_guards_reject_both_write_paths(mysql_db, active_kb, make_note, write_path):
+    from tribal.errors import TribalError
+    from tribal.publication import ingest_vault
+    from acceptance_helpers import execute
+    result = ingest_vault(mysql_db, {"vector.md": make_note()}, knowledge_base=active_kb["key"])
+    assert result["ok"] is True
+    chunk_id = result["documents"]["vector.md"]["chunk_ids"][0]
+    profile_id = uuid.UUID(active_kb["profile"]["id"]).bytes
+    insert = "INSERT INTO chunk_embeddings(chunk_id,profile_id,dimensions,embedding,input_hash) VALUES (%s,%s,%s,STRING_TO_VECTOR(%s),%s)"
+    if write_path == "update":
+        execute(mysql_db, insert, (chunk_id, profile_id, 3, "[1,0,0]", bytes(32)))
+    with pytest.raises(TribalError) as failure:
+        if write_path == "insert":
+            execute(mysql_db, insert, (chunk_id, profile_id, 3, "[1,0]", bytes(32)))
+        else:
+            execute(mysql_db, "UPDATE chunk_embeddings SET embedding=STRING_TO_VECTOR(%s) WHERE chunk_id=%s AND profile_id=%s", ("[1,0]", chunk_id, profile_id))
+    assert failure.value.code == "E_DATABASE"
+    rows = execute(mysql_db, "SELECT CAST(embedding AS BINARY) AS vector FROM chunk_embeddings WHERE chunk_id=%s AND profile_id=%s", (chunk_id, profile_id))
+    if write_path == "insert":
+        assert rows == []
+    else:
+        assert bytes(rows[0]["vector"]) == struct.pack("<fff", 1, 0, 0)
