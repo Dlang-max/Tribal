@@ -106,6 +106,13 @@ def test_exact_soft_boundary_counts_source_bytes(size):
     result = layout(note(body))
     assert contents(result) == [body]
     assert ("W_OVERSIZED_BLOCK" in diagnostic_codes(result)) is (size > 4096)
+    if size > 4096:
+        warning = next(d for d in result["diagnostics"] if d["code"] == "W_OVERSIZED_BLOCK")
+        chunk = result["chunks"][0]
+        assert warning["expected"] == 4096
+        assert warning["actual"] == dict(start_byte=chunk["start_byte"], end_byte=chunk["end_byte"],
+                                       bytes=size, unit_kind="paragraph")
+
 
 
 @pytest.mark.parametrize("combined_bytes", [4096, 4097])
@@ -145,6 +152,15 @@ def test_oversized_protected_blocks_are_kept_whole(protected):
     warnings = [d for d in result["diagnostics"] if d["code"] == "W_OVERSIZED_BLOCK"]
     assert warnings
     assert all(d["severity"] == "warning" and d["hint"] for d in warnings)
+    oversized = result["chunks"][1]
+    warning = next(d for d in warnings if d["actual"]["start_byte"] == oversized["start_byte"])
+    assert warning["expected"] == 4096
+    assert warning["actual"]["end_byte"] == oversized["end_byte"]
+    assert warning["actual"]["bytes"] == len(protected.encode("utf-8"))
+    assert warning["actual"]["unit_kind"] in {
+        "paragraph", "table", "code", "mermaid", "math", "list_item", "list",
+        "blockquote", "definition", "opaque", "other"}
+
 
 
 def test_oversized_lists_split_only_between_complete_immediate_items():
