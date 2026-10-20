@@ -105,7 +105,7 @@ advance_generations(connection, knowledge_base_id, *, knowledge=False,
 
 ## Frozen SQL mapping
 
-Storage is the sole migration author. Implement every column/index/constraint of the nine-table [schema](tribal_schema.md), plus these additions. All tables are InnoDB. Existing table/column names, `VECTOR(16383)`, UUID/hash representations, full-text indexes, revision ownership FKs, and byte capacity constraints remain authoritative. Do not substitute MariaDB, JSON vectors, or SQL `DISTANCE()` requirements.
+Storage is the sole migration author. Implement every column/index/constraint of the nine-table [schema](tribal_schema.md), plus these additions. All tables are InnoDB. Existing table/column names, `VECTOR(16383)`, UUID/hash representations, full-text indexes, revision ownership FKs, and byte capacity constraints remain authoritative, subject to the equivalent vector-dimension enforcement below. Do not substitute MariaDB, JSON vectors, or SQL `DISTANCE()` requirements.
 
 | Table | Added columns / constraints |
 |---|---|
@@ -114,6 +114,8 @@ Storage is the sole migration author. Implement every column/index/constraint of
 | `embedding_jobs` | Columns and constraints below. |
 | `search_sessions` | Columns and constraints below. |
 | `search_session_results` | Columns and constraints below. |
+
+The storage owner verified on MySQL 9.7.2 that `CHECK (VECTOR_DIM(embedding) = dimensions)` is rejected with server error 3064. The approved equivalent is both `BEFORE INSERT` and `BEFORE UPDATE` triggers on `chunk_embeddings` that reject `VECTOR_DIM(NEW.embedding) <> NEW.dimensions` with `SIGNAL SQLSTATE '45000'` (server error 1644). Keep native `VECTOR(16383)`, the immutable profile dimensions, and the `(profile_id, dimensions)` foreign key. Both write paths must reject mismatched dimensions. Executed, versioned storage migrations and their real-server checks are the authority for exact working DDL; update the schema document to match this tested enforcement instead of preserving an unexecutable CHECK. Package migration SQL as `tribal` package data using `migrations/*.sql` so installed wheels retain it.
 
 `embedding_jobs` columns:
 
