@@ -5,7 +5,7 @@
 
 ## Acceptance checks
 
-The latest saved full run against the pinned MySQL 9.7.2 Community Docker image completed with **527 passed and 2 skipped**. The skips are the optional credentialed OpenAI smoke tests. Source and test revisions were unchanged during that run. Coverage was **91.6118% of statements** and **84.9687% of branches (814/958)**. The statement target of 90% is met; the strict 85% branch target is not. The displayed rounded branch value of 85% does not meet a strict threshold. One additional branch must be covered and the full aggregate run repeated before calling the coverage gate complete.
+The latest saved full run against the pinned MySQL 9.7.2 Community Docker image completed with **527 passed and 2 skipped**. One skip is the optional live OpenAI smoke; the other is the opt-in exact-search benchmark, which was run separately and passed. Source and test revisions were unchanged during that run. Coverage was **91.6118% of statements** and **84.9687% of branches (814/958)**. The statement target of 90% is met; the strict 85% branch target is not. The displayed rounded branch value of 85% does not meet a strict threshold. One additional branch must be covered and the full aggregate run repeated before calling the coverage gate complete.
 
 The CLI's independent real-MySQL suite passed **22 checks**. The component acceptance suites and fixes have also received scoped review. A final whole-integration review remains pending. The full validation does not include a live OpenAI request; no API key was supplied, and deterministic-provider coverage verifies local behavior only.
 
