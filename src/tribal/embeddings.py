@@ -44,11 +44,13 @@ def normalize_vector(values, *, dimensions: int) -> list[float]:
         raise invalid() from exc
     if len(vector) != dimensions or not all(math.isfinite(value) for value in vector):
         raise invalid()
-    norm = math.hypot(*vector)
-    if not math.isfinite(norm) or norm == 0:
+    scale = max(abs(value) for value in vector)
+    if scale == 0:
         raise invalid()
+    scaled = [value / scale for value in vector]
+    norm = math.hypot(*scaled)
     try:
-        packed = struct.pack("<" + "f" * dimensions, *(value / norm for value in vector))
+        packed = struct.pack("<" + "f" * dimensions, *(value / norm for value in scaled))
         result = list(struct.unpack("<" + "f" * dimensions, packed))
     except (OverflowError, struct.error) as exc:
         raise invalid() from exc
