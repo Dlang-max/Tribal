@@ -8,9 +8,9 @@ import math
 import struct
 from uuid import UUID, uuid4
 
-from .embeddings import count_tokens, normalize_vector
+from .embeddings import _indexing_status, count_tokens, normalize_vector
 from .errors import TribalError
-from .storage import _uuid_bytes
+from .storage import _row, _uuid_bytes
 from .structure import parse_structure
 
 
@@ -192,21 +192,20 @@ def _generations(row):
 
 
 def _indexing(connection, kb):
-    counts = _one(connection, """
-        SELECT COUNT(*) AS total,
-          COALESCE(SUM(ce.chunk_id IS NOT NULL),0) AS embedded,
-          COALESCE(SUM(ce.chunk_id IS NULL AND jobs.oversized=1),0) AS oversized,
-          COALESCE(SUM(ce.chunk_id IS NULL AND COALESCE(jobs.oversized,0)=0 AND jobs.failed=1),0) AS failed
-        FROM documents d JOIN document_chunks c ON c.revision_id=d.current_revision_id
-        LEFT JOIN chunk_embeddings ce ON ce.chunk_id=c.id AND ce.profile_id=%s
-        LEFT JOIN (SELECT chunk_id, MAX(state='oversized') AS oversized, MAX(state='failed') AS failed
-                   FROM embedding_jobs WHERE profile_id=%s GROUP BY chunk_id) jobs ON jobs.chunk_id=c.id
-        WHERE d.knowledge_base_id=%s AND d.deleted_at IS NULL
-        """, (kb["active_profile_id"], kb["active_profile_id"], kb["id"]))
-    counts = {key: int(value) for key, value in counts.items()}
-    counts["pending"] = counts["total"] - counts["embedded"] - counts["oversized"] - counts["failed"]
-    counts["ready"] = not (counts["pending"] or counts["oversized"] or counts["failed"])
-    return counts
+    normalized = _row(kb)
+    if normalized["active_profile_id"] is not None:
+        return _indexing_status(connection, normalized, normalized["active_profile_id"])
+    # Lexical search works before profile activation. Without a profile there
+    # are no compatible vector/job identities, so every current chunk is pending.
+    total = _one(connection, "SELECT COUNT(*) AS total FROM documents d "
+                 "JOIN document_chunks c ON c.revision_id=d.current_revision_id "
+                 "WHERE d.knowledge_base_id=%s AND d.deleted_at IS NULL", (kb["id"],))["total"]
+    return {
+        "ok": True, "diagnostics": [], "knowledge_base_id": normalized["id"], "profile_id": None,
+        "total": total, "embedded": 0, "pending": total, "oversized": 0, "failed": 0,
+        "ready": total == 0, "knowledge_generation": kb["knowledge_generation"],
+        "indexing_generation": kb["indexing_generation"],
+    }
 
 
 def _filters(value, field, allowed=None):
