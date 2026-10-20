@@ -286,7 +286,9 @@ def test_profile_activation_requires_coverage_and_partial_override_is_disclosed(
     assert "W_INDEXING_PARTIAL" in {d["code"] for d in partial["diagnostics"]}
     assert indexing_status(mysql_db, knowledge_base=active_kb["key"])["pending"] == 1
     assert backfill_embeddings(mysql_db, knowledge_base=active_kb["key"])["enqueued"] == 1
-    worker(mysql_db, active_kb, Provider())
+    migration_provider = Provider()
+    assert worker(mysql_db, active_kb, migration_provider)["state"] == "succeeded"
+    assert len(migration_provider.calls) == 1, "a distinct profile cannot reuse the old profile vector"
     assert indexing_status(mysql_db, knowledge_base=active_kb["key"])["ready"] is True
     before = generation(mysql_db, active_kb)
     activate_profile(mysql_db, knowledge_base=active_kb["key"], profile_id=profile["id"])

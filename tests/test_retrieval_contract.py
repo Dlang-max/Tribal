@@ -335,3 +335,21 @@ def test_document_read_returns_exact_canonical_utf8_ranges_and_enforces_ownershi
     with pytest.raises(TribalError) as failure:
         read_document(mysql_db, knowledge_base=active_kb["key"], document_id=head["document_id"], revision_id=other["revision_id"])
     assert failure.value.code == "E_NOT_FOUND"
+
+
+@pytest.mark.parametrize("insert_neighbor, selected_diagram", [(False, "first"), (True, "second")])
+def test_context_diagram_priority_uses_range_distance_then_source_position(mysql_db, active_kb, make_note, insert_neighbor, selected_diagram):
+    from tribal.retrieval import read_context
+    first_diagram = "```mermaid\nflowchart TD\n" + "A-->B\n" * 700 + "```\n\n"
+    second_diagram = first_diagram.replace("A-->B", "X-->Y")
+    neighbor = "n" * 3000 + "\n\n" if insert_neighbor else ""
+    matched = "MATCH " + "m" * 3000 + "\n\n"
+    head = publish(mysql_db, active_kb, {"intro.md": make_note(first_diagram + neighbor + matched + second_diagram)})["documents"]["intro.md"]
+    chunks = execute(mysql_db, "SELECT * FROM document_chunks WHERE revision_id=%s ORDER BY ordinal", (uuid.UUID(head["revision_id"]).bytes,))
+    match = next(chunk for chunk in chunks if chunk["content"] == matched)
+    selected = first_diagram if selected_diagram == "first" else second_diagram
+    budget = len(matched.encode()) + len(selected.encode())
+    response = read_context(mysql_db, knowledge_base=active_kb["key"], document_id=head["document_id"], revision_id=head["revision_id"], chunk_id=match["id"], budget_bytes=budget)
+    assert len(response["chunks"]) == 2
+    assert selected in [chunk["content"] for chunk in response["chunks"]]
+    assert [chunk["start_byte"] for chunk in response["chunks"]] == sorted(chunk["start_byte"] for chunk in response["chunks"])
