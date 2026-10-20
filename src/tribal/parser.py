@@ -352,6 +352,7 @@ def _markdown(v, body, canonical, canonical_body_offset, submitted_body_line):
     from markdown_it.rules_inline.backticks import backtick as backticks
     from markdown_it.rules_inline.state_inline import StateInline
     from bisect import bisect_right
+    from .structure import Heading, build_structure
 
     md = MarkdownIt('commonmark', {'html': True}).enable('table', 'strikethrough')
     from markdown_it.rules_block import fence as original_fence
@@ -379,9 +380,11 @@ def _markdown(v, body, canonical, canonical_body_offset, submitted_body_line):
     # Mask recognized opaque extensions before block parsing; masks retain positions.
     chars = list(body)
     opaque = []
+    protected = []
     def mask(a, b, description):
         if any(a >= x and b <= y for x,y in opaque): return
         opaque.append((a,b))
+        protected.append((a,b,description))
         for j in range(a,b):
             if chars[j] != '\n': chars[j] = ' '
         warn_extension(a, description)
@@ -428,6 +431,7 @@ def _markdown(v, body, canonical, canonical_body_offset, submitted_body_line):
     env = {}
     tokens = md.parse(masked, env)
     headings = []
+    structural_headings = []
     blocks = []
     table_lines = set()
     eligible = set()
@@ -460,6 +464,8 @@ def _markdown(v, body, canonical, canonical_body_offset, submitted_body_line):
             plain = all(t.type == 'text' for t in inline.children or []) and inline.content.strip() == text
             h = dict(level=int(token.tag[1:]), text=text, line=submitted_body_line+ln, column=col, _plain=plain)
             headings.append(h)
+            structural_headings.append(Heading(byte_starts[token.map[0]], byte_starts[token.map[1]],
+                                               'heading', h['level'], text, plain, token.level == 0))
             if token.level == 0:
                 v.limit('heading', text, 255, line=h['line'], column=h['column'])
                 if ancestry and h['level'] > ancestry[-1][0]+1:
@@ -609,6 +615,9 @@ def _markdown(v, body, canonical, canonical_body_offset, submitted_body_line):
             if source.startswith('[!',i) or source.startswith('==',i) or source.startswith('[^',i):
                 warn_extension(absolute,'Obsidian inline extension')
             i+=1
+    v.structure = build_structure(body=body, canonical=canonical, body_start=canonical_body_offset,
+                                  submitted_body_line=submitted_body_line, tokens=tokens,
+                                  headings=structural_headings, opaque=protected, eligible=eligible)
     return headings,blocks,links
 
 
