@@ -59,6 +59,8 @@ Return required keys `valid`, `path`, `diagnostics`, `document_id`, `revision_id
 
 Every chunk has `revision_id`, `ordinal`, `heading_path`, `section_anchor`, `start_byte`, `end_byte`, `content`, `chunker_version`. No preview chunk `id` is allocated. SQL assigns `id` at publication. `content` is exactly `canonical_markdown.encode("utf-8")[start_byte:end_byte].decode("utf-8")`. Ordered ranges cover `[body_start_byte, len(canonical_utf8))` once, with no gaps. Broken invariants raise `E_CHUNK_INVARIANT`, not `valid=False`.
 
+`W_OVERSIZED_BLOCK` uses the normal diagnostic envelope with `expected=4096` and `actual={"start_byte": int, "end_byte": int, "bytes": int, "unit_kind": str}`. Here `bytes` is `end_byte - start_byte`, including attached source gaps. `unit_kind` is one of `paragraph`, `heading`, `table`, `code`, `mermaid`, `math`, `list_item`, `list`, `blockquote`, `definition`, `opaque`, or `other`, as appropriate to the emitted intact unit. `line` and `column` locate the unit start in normalized submitted source, using the transport mapping. Keep the structured `actual` object; do not stringify it.
+
 ```json
 {
   "valid": true, "path": "note.md", "diagnostics": [],
