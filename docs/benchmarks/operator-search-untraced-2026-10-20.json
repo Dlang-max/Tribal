@@ -1,0 +1,19 @@
+{
+  "tracemalloc_enabled": false,
+  "debug_trace_enabled": false,
+  "eligible_vectors": 1000,
+  "returned_hits": 100,
+  "dimensions": 1536,
+  "limit": 100,
+  "trials": 5,
+  "latency_seconds": [
+    1.7958940899999902,
+    0.7748766490000207,
+    0.7372411169999964,
+    0.7475659560000167,
+    0.7423599080000258
+  ],
+  "median_seconds": 0.7475659560000167,
+  "provider": "fixed vector; no live API",
+  "source": "reviewed integration source matching validation 57006f3"
+}

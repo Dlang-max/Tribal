@@ -2,7 +2,7 @@
 
 Tribal validates Markdown locally, previews source chunks, publishes a selected batch to MySQL, and indexes it for search. The [implementation contracts](implementation_contracts.md) describe the Python APIs and result fields; [parser usage](parser_usage.md) covers standalone validation. Commands below describe the operator interface. Component and external-service verification must be reported separately from command availability.
 
-Current verification status (2026-10-20): parser validation and pure chunk preview pass their regression/contract suites. Database-backed command integration checks are pending the reviewed storage, publication, embeddings, and retrieval components and their real MySQL tests. The database workflows below document the CLI contract while those checks are pending. A credentialed OpenAI smoke test is a separate opt-in check; deterministic-provider tests do not establish live provider success.
+Current verification status (2026-10-20): parser/chunker and database-backed services are implemented and individually reviewed. The full CLI pipeline, including deletion/restoration and nonsoftware notes, passed all 22 independent CLI tests against MySQL 9.7.2 Community in the pinned Docker image. Final aggregate coverage and whole-integration review are still being checked. See the [validation report](validation_report.md) for exact evidence and limits. Credentialed OpenAI verification remains unrun because no API key was supplied; deterministic-provider tests do not establish live provider success.
 
 ## Install and configure
 
@@ -142,7 +142,7 @@ Continue by repeating the exact query, requested modes, and filters with the ret
 tribal search 'seed germination' --knowledge-base research --cursor "$NEXT_CURSOR" --json
 ```
 
-Page size may change. A continuation reuses the retained ranking/vector and does not need another provider request. Sessions expire after 15 minutes or after knowledge/indexing/profile changes. `E_CURSOR_EXPIRED` means start a fresh search; `E_CURSOR_INVALID` means correct the cursor or restore the original parameters.
+Page size may change. A continuation reuses the retained ranking/vector and does not need another provider request. Sessions expire after 15 minutes or after knowledge/indexing/profile changes. `E_CURSOR_EXPIRED` means start a fresh search; `E_CURSOR_INVALID` means correct the cursor or restore the original parameters, including the knowledge base. A cursor from another knowledge base is invalid; generation/profile changes or TTL expiry within the same knowledge base expire it.
 
 Read a complete canonical document, an exact byte slice, or complete source chunks around a hit:
 
@@ -155,7 +155,9 @@ tribal context "$DOCUMENT_ID" "$REVISION_ID" "$CHUNK_ID" --knowledge-base resear
 
 Byte ranges are half-open UTF-8 offsets in canonical Markdown, including frontmatter. Supply both endpoints at UTF-8 boundaries. Context uses the matched revision and precise containing section, prioritizes complete same-section Mermaid chunks, then neighbors, and returns selected ranges in source order. The default source budget is 65,536 bytes; `--budget-bytes` overrides it. Omitted chunks/bytes and completeness are disclosed. `E_CONTEXT_BUDGET_EXCEEDED` means the complete matched chunk cannot fit; raise the budget or read the document explicitly. A diagram in another section requires an explicit document read.
 
-Exact semantic ranking scans eligible stored float32 vectors in the application. The API's default capacity guard is 100,000 eligible candidates; this is a configured rejection bound, not a measured performance guarantee. `E_SEARCH_CAPACITY` returns no partial page. Record corpus size, vector dimensions, host, and timings before choosing a deployment limit. Live OpenAI verification and Docker/MySQL acceptance results must be reported separately from deterministic-provider checks.
+Exact semantic ranking scans eligible stored float32 vectors in the application. On a 1,000-vector, 1,536-dimension corpus, five `LIMIT 100` public searches without Python allocation tracing or debug tracing took 1.795894, 0.774877, 0.737241, 0.747566, and 0.742360 seconds (median 0.747566 seconds; first trial 1.80 seconds). They used a fixed query vector and made no live API call. A separate full-path run with allocation tracing enabled took 8.7383, 8.0691, and 7.7829 seconds (median 8.0691 seconds), materialized all 1,000 results, and verified exact top-100 results. These instrumented timings are not comparable to normal untraced operator latency. Both measurements used a shared host and do not establish capacity or latency above 1,000 vectors. The [validation report](validation_report.md) records methods, memory limits, and artifacts.
+
+The API's default capacity guard is 100,000 eligible candidates; this is a configured rejection bound, not a latency guarantee or measured supported corpus size. `E_SEARCH_CAPACITY` returns no partial page. Measure your corpus and host before choosing a deployment limit. Live OpenAI verification and Docker/MySQL acceptance results are separate evidence.
 
 ## Diagnostics and exit codes
 
