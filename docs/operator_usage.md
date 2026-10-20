@@ -60,7 +60,7 @@ Registry commands are idempotent for matching configuration. Profiles are immuta
 
 ## First vault ingest
 
-After the database, knowledge base, domain, and embedding profile are configured, validate and publish the vault from its root:
+After configuring `TRIBAL_DB_*` and `OPENAI_API_KEY`, creating the knowledge base/domain, and activating an embedding profile on that knowledge base, validate and publish the vault from its root. Ingest queues jobs for the active profile, and indexing status defaults to that profile.
 
 ```bash
 VAULT=/path/to/your/vault
