@@ -1,6 +1,6 @@
 # Chunking, storage, and search implementation status
 
-The [implementation plan](superpowers/plans/2026-10-20-chunking-storage-search.md) is **partially implemented**. Work is retained on `chunking/integration` and isolated feature branches. Implementation agents reached the account usage limit before the remaining services could be implemented; this is not a completed milestone.
+The [implementation plan](superpowers/plans/2026-10-20-chunking-storage-search.md) is **partially implemented**. Work is retained on `chunking/integration` and isolated feature branches. Work has resumed after an account usage interruption; the remaining services are being implemented. This is not a completed milestone.
 
 ## Delivered and reviewed
 
@@ -13,7 +13,7 @@ The [implementation plan](superpowers/plans/2026-10-20-chunking-storage-search.m
 
 These components passed GPT-6 Luna high reviews, including scoped reviews of corrections. The existing parser API remains compatible. Only the dedicated tester agent authored new tests and test data.
 
-The latest coordinator verification against the official pinned MySQL 9.7.2 Community Docker container passed **365 tests**, with **one skipped credentialed OpenAI smoke test**, in 7.56 seconds. This verifies the currently integrated components; it does not cover unimplemented services. Storage separately passed all 15 real MySQL tests against both Docker and the extracted official server executable. The runtime lock also passed a fresh hash-checked installation, dependency check and tokenizer/import smoke check.
+The latest coordinator verification against the official pinned MySQL 9.7.2 Community Docker container passed **365 tests**, with **one skipped credentialed OpenAI smoke test**, in 7.56 seconds. This verifies the currently integrated components; it does not cover unimplemented services. Storage separately passed all 15 real MySQL tests against both Docker and the extracted official server executable. After resumption, 21 CLI checks passed; the CLI owner also verified real database migration and registry/profile commands. The runtime lock also passed a fresh hash-checked installation, dependency check and tokenizer/import smoke check.
 
 MySQL 9.7.2 rejects a CHECK constraint referencing a VECTOR column. Tested BEFORE INSERT and BEFORE UPDATE triggers enforce vector dimensions instead, while preserving native VECTOR storage and the profile dimension foreign key. Development Docker configuration disables binary logging; a deployment with logging enabled needs sufficient migration privileges for trigger creation.
 
@@ -21,7 +21,7 @@ MySQL 9.7.2 rejects a CHECK constraint referencing a VECTOR column. Tested BEFOR
 
 | Branch | Remaining action |
 |---|---|
-| `chunking/cli` | CLI commands and operator guide are committed; a documentation correction needs scoped re-review before integration, then real service checks. |
+| `chunking/cli` | CLI commands and operator guide are reviewed and integrated; final service-pipeline checks remain. |
 | `chunking/embeddings` | Implement durable queue/worker fencing, transaction-local enqueue, backfill/retry/status and profile activation. |
 | `chunking/publication` | Implement atomic ingestion, lifecycle changes, complete link refresh, path swaps/history and explicit rechunking. |
 | `chunking/retrieval` | Implement ranking, durable search sessions/pagination, revision-pinned reads and diagram context. |
