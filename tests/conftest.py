@@ -33,3 +33,24 @@ def live_openai_enabled():
         pytest.skip("live OpenAI smoke is opt-in: set TRIBAL_TEST_LIVE_OPENAI=1")
     if not os.environ.get("OPENAI_API_KEY"):
         pytest.fail("live smoke requested but OPENAI_API_KEY is absent", pytrace=False)
+
+
+@pytest.fixture(scope="session")
+def mysql_db(mysql_config):
+    # A missing implementation is a failure once the explicit service prerequisite
+    # is supplied; it is never converted to a prerequisite skip.
+    from tribal.storage import Database, migrate
+    db = Database(**mysql_config)
+    migrate(db)
+    yield db
+    db.close()
+
+
+@pytest.fixture
+def registered_kb(mysql_db):
+    from uuid import uuid4
+    from tribal.storage import ensure_domain, ensure_knowledge_base
+    key = "test-" + uuid4().hex
+    kb = ensure_knowledge_base(mysql_db, key=key, name="Independent acceptance")
+    domain = ensure_domain(mysql_db, knowledge_base=key, key="research", name="Research")
+    return dict(key=key, id=kb["knowledge_base"]["id"], domain=domain["domain"])
