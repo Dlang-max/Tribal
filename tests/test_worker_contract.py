@@ -211,6 +211,66 @@ def test_transient_retries_are_durable_honor_retry_after_and_stop_at_three(mysql
     assert generation(mysql_db, active_kb) == before + 1
 
 
+@pytest.mark.parametrize("guidance", ["http-date", "milliseconds"])
+def test_worker_honors_provider_retry_guidance_variants(mysql_db, active_kb, make_note, guidance):
+    from datetime import datetime, timedelta, timezone
+    from email.utils import format_datetime
+    import httpx2 as httpx
+    import openai
+
+    ingest(mysql_db, active_kb, {"one.md": make_note()})
+    if guidance == "http-date":
+        headers = {"retry-after": format_datetime(datetime.now(timezone.utc) + timedelta(seconds=5), usegmt=True)}
+    else:
+        headers = {"retry-after-ms": "5000"}
+
+    class GuidedRateLimit(Provider):
+        def embed(self, text, **kwargs):
+            self.calls.append(text)
+            response = httpx.Response(429, headers=headers, request=httpx.Request("POST", "https://example.invalid"))
+            raise openai.RateLimitError("synthetic rate limit", response=response, body={"unsafe": "provider-secret-sentinel"})
+
+    provider = GuidedRateLimit()
+    result = worker(mysql_db, active_kb, provider)
+    row = jobs(mysql_db, active_kb)[0]
+    delay = execute(mysql_db, "SELECT TIMESTAMPDIFF(MICROSECOND,CURRENT_TIMESTAMP(6),available_at)/1000000 AS delay FROM embedding_jobs WHERE id=%s", (row["id"],))[0]["delay"]
+
+    assert result["state"] == row["state"] == "queued"
+    assert row["attempts"] == 1
+    assert row["claim_token"] is row["lease_expires_at"] is None
+    assert 3.5 < float(delay) <= 5
+    assert "provider-secret-sentinel" not in json.dumps(result)
+
+
+@pytest.mark.parametrize("headers", [
+    {"retry-after": "tomorrow", "retry-after-ms": "invalid"},
+    {"retry-after": "-1", "retry-after-ms": "-100"},
+], ids=["malformed", "negative"])
+def test_worker_uses_bounded_retry_when_provider_retry_guidance_is_malformed(mysql_db, active_kb, make_note, headers):
+    import httpx2 as httpx
+    import openai
+
+    ingest(mysql_db, active_kb, {"one.md": make_note()})
+
+    class MalformedRateLimit(Provider):
+        def embed(self, text, **kwargs):
+            self.calls.append(text)
+            response = httpx.Response(429, headers=headers,
+                                      request=httpx.Request("POST", "https://example.invalid"))
+            raise openai.RateLimitError("synthetic rate limit", response=response, body={"unsafe": "provider-secret-sentinel"})
+
+    provider = MalformedRateLimit()
+    result = worker(mysql_db, active_kb, provider)
+    row = jobs(mysql_db, active_kb)[0]
+    delay = execute(mysql_db, "SELECT TIMESTAMPDIFF(MICROSECOND,CURRENT_TIMESTAMP(6),available_at)/1000000 AS delay FROM embedding_jobs WHERE id=%s", (row["id"],))[0]["delay"]
+
+    assert result["state"] == row["state"] == "queued"
+    assert row["attempts"] == 1
+    assert row["claim_token"] is row["lease_expires_at"] is None
+    assert 0 < float(delay) <= 30
+    assert "provider-secret-sentinel" not in json.dumps(result)
+
+
 def test_exhausted_expired_claim_becomes_terminal_without_provider_call(mysql_db, active_kb, make_note):
     ingest(mysql_db, active_kb, {"one.md": make_note()})
     row = jobs(mysql_db, active_kb)[0]
