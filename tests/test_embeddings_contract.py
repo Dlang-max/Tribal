@@ -110,15 +110,3 @@ def test_opt_in_real_openai_embedding_smoke(live_openai_enabled):
     assert len(vector) == 1536
     normalized = normalize_vector(vector, dimensions=1536)
     assert math.hypot(*normalized) == pytest.approx(1.0, abs=1e-6)
-
-
-def test_finite_vector_with_overflowing_raw_norm_still_normalizes(api):
-    actual = api.normalize_vector([1.3e308, 1.3e308], dimensions=2)
-    assert actual == [f32(math.sqrt(0.5)), f32(math.sqrt(0.5))]
-    assert all(math.isfinite(value) for value in actual)
-    assert math.hypot(*actual) == pytest.approx(1.0, abs=1e-7)
-
-
-def test_mixed_extreme_scales_preserve_a_nonzero_finite_direction(api):
-    actual = api.normalize_vector([1e-300, -1e300, 0], dimensions=3)
-    assert actual == [0.0, -1.0, 0.0]

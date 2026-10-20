@@ -24,18 +24,3 @@ def distinct_note(body="A useful observation.\n", **changes):
 
 def diagnostic_codes(result):
     return {item["code"] for item in result["diagnostics"]}
-
-
-def execute(db, statement, params=()):
-    """Run setup/assertion SQL in a real independent transaction."""
-    with db.transaction() as connection:
-        cursor = connection.cursor(dictionary=True)
-        try:
-            cursor.execute(statement, params)
-            return cursor.fetchall() if cursor.with_rows else cursor.rowcount
-        finally:
-            cursor.close()
-
-
-def based(content, revision_id):
-    return content.replace("---\n", f"---\ntribal_base_revision: {revision_id}\n", 1)
