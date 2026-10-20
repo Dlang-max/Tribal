@@ -341,3 +341,47 @@ def test_database_enforces_duplicate_job_identity_and_running_claim_invariant(my
     assert failure.value.code == "E_DATABASE"
     assert len(jobs(mysql_db, active_kb)) == 1
     assert jobs(mysql_db, active_kb)[0]["state"] == "queued"
+
+
+@pytest.mark.parametrize("status_code, expected_state", [(408, "queued"), (409, "queued"),
+    (500, "queued"), (503, "queued"), (400, "failed"), (401, "failed"), (403, "failed"), (422, "failed")])
+def test_provider_http_failures_have_durable_transient_or_terminal_classification(mysql_db, active_kb, make_note, status_code, expected_state):
+    import httpx
+    import openai
+    ingest(mysql_db, active_kb, {"one.md": make_note()})
+    before = generation(mysql_db, active_kb)
+    class HttpFailure(Provider):
+        def embed(self, text, **kwargs):
+            self.calls.append(text)
+            response = httpx.Response(status_code, request=httpx.Request("POST", "https://example.invalid"))
+            raise openai.APIStatusError("synthetic provider failure", response=response, body={"detail": "unsafe-response-sentinel"})
+    provider = HttpFailure()
+    result = worker(mysql_db, active_kb, provider)
+    assert result["state"] == expected_state and result["attempts"] == 1
+    row = jobs(mysql_db, active_kb)[0]
+    assert row["state"] == expected_state
+    assert row["claim_token"] is row["lease_expires_at"] is None
+    assert "unsafe-response-sentinel" not in json.dumps(result)
+    assert "unsafe-response-sentinel" not in (row["last_error_message"] or "")
+    assert generation(mysql_db, active_kb) == before + (expected_state == "failed")
+    assert len(provider.calls) == 1
+
+
+@pytest.mark.parametrize("timeout", [False, True])
+def test_sdk_connection_and_timeout_failures_release_claim_for_retry(mysql_db, active_kb, make_note, timeout):
+    import httpx
+    import openai
+    ingest(mysql_db, active_kb, {"one.md": make_note()})
+    class ConnectionFailure(Provider):
+        def embed(self, text, **kwargs):
+            self.calls.append(text)
+            request = httpx.Request("POST", "https://example.invalid")
+            if timeout:
+                raise openai.APITimeoutError(request=request)
+            raise openai.APIConnectionError(request=request)
+    provider = ConnectionFailure()
+    assert worker(mysql_db, active_kb, provider)["state"] == "queued"
+    row = jobs(mysql_db, active_kb)[0]
+    assert row["state"] == "queued" and row["attempts"] == 1
+    assert row["claim_token"] is row["lease_expires_at"] is None
+    assert len(provider.calls) == 1
