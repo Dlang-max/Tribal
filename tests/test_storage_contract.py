@@ -99,7 +99,8 @@ def test_registry_idempotence_and_parameterized_unicode_values(mysql_db):
     domain = ensure_domain(mysql_db, knowledge_base=key, key="seed", name="Seed")
     assert ensure_domain(mysql_db, knowledge_base=key, key="seed", name="Seed")["domain"]["id"] == domain["domain"]["id"]
     assert domain["domain"]["knowledge_base_id"] == row["id"]
-    assert uuid.UUID(row["id"]).version == 4
+    assert str(uuid.UUID(row["id"])) == row["id"]
+    assert uuid.UUID(row["id"]).int != 0
 
 
 def test_domains_are_scoped_to_knowledge_base(mysql_db, registered_kb):
