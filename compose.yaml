@@ -1,0 +1,30 @@
+services:
+  mysql:
+    # Docker Official Image, MySQL Community 9.7.2; resolved 2026-10-20.
+    image: mysql:9.7@sha256:e2fa358a74ac81148e7e27d9433e4c0ab62133de8ea4428b4f39a51a4ba7d07f
+    environment:
+      MYSQL_DATABASE: ${TRIBAL_DB_NAME:-tribal}
+      MYSQL_USER: ${TRIBAL_DB_USER:?Set TRIBAL_DB_USER}
+      MYSQL_PASSWORD: ${TRIBAL_DB_PASSWORD:?Set TRIBAL_DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${TRIBAL_MYSQL_ROOT_PASSWORD:?Set TRIBAL_MYSQL_ROOT_PASSWORD}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --default-time-zone=+00:00
+      - --max-allowed-packet=64M
+      # Single-node development database; production migrators need the
+      # privileges required to create triggers with binary logging enabled.
+      - --skip-log-bin
+    ports:
+      - 127.0.0.1:${TRIBAL_DB_PORT:-3306}:3306
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: [CMD, mysqladmin, ping, --host=127.0.0.1, --silent]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+volumes:
+  mysql_data:
