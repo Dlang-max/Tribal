@@ -26,6 +26,7 @@ def layout(authored, **kwargs):
     assert result["chunker_version"] == POLICY
     body = canonical["body"]
     body_start = len(source) - len(body.encode("utf-8"))
+    assert result["body_start_byte"] == body_start
     cursor = body_start
     for ordinal, chunk in enumerate(chunks):
         assert chunk["ordinal"] == ordinal
@@ -208,3 +209,12 @@ def test_assignment_validation_is_preserved():
     assert result["valid"] is False
     assert result["chunks"] == []
     assert "E_ASSIGNMENT" in diagnostic_codes(result)
+
+
+def test_footnote_continuation_paragraphs_across_blank_lines_stay_one_definition():
+    prefix, suffix = "Before.\n\n", "After.\n"
+    definition = "[^observation]: first paragraph\n\n    " + "x" * 5000 + "\n\n"
+    result = layout(note(prefix + definition + suffix))
+    assert contents(result) == [prefix, definition, suffix]
+    warning = next(d for d in result["diagnostics"] if d["code"] == "W_OVERSIZED_BLOCK")
+    assert warning["actual"]["unit_kind"] == "definition"

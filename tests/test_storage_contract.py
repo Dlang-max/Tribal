@@ -99,7 +99,8 @@ def test_registry_idempotence_and_parameterized_unicode_values(mysql_db):
     domain = ensure_domain(mysql_db, knowledge_base=key, key="seed", name="Seed")
     assert ensure_domain(mysql_db, knowledge_base=key, key="seed", name="Seed")["domain"]["id"] == domain["domain"]["id"]
     assert domain["domain"]["knowledge_base_id"] == row["id"]
-    assert uuid.UUID(row["id"]).version == 4
+    assert str(uuid.UUID(row["id"])) == row["id"]
+    assert uuid.UUID(row["id"]).int != 0
 
 
 def test_domains_are_scoped_to_knowledge_base(mysql_db, registered_kb):
@@ -198,3 +199,95 @@ def test_server_vector_functions_preserve_ieee_float32(mysql_db):
     values = [0.1, -0.2, 0.3]
     row = sql(mysql_db, "SELECT CAST(STRING_TO_VECTOR(%s) AS BINARY) AS value", (json.dumps(values),))[0]
     assert bytes(row["value"]) == struct.pack("<fff", *values)
+
+
+@pytest.mark.parametrize("dimensions", [True, False, 0, -1, 16384, 3.5, "3"])
+def test_profile_dimensions_require_positive_nonboolean_integer(mysql_db, dimensions):
+    from tribal.errors import TribalError
+    from tribal.storage import ensure_profile
+    configuration = dict(wrapper="tribal-title-headings-v1", encoding="cl100k_base", max_input_tokens=8192,
+                         distance="cosine", normalization="l2-float32-v1")
+    with pytest.raises(TribalError) as failure:
+        ensure_profile(mysql_db, key="bad-dim-" + uuid.uuid4().hex, dimensions=dimensions, configuration=configuration)
+    assert failure.value.code == "E_ARGUMENT"
+
+
+@pytest.mark.parametrize("changes", [
+    {"wrapper": "unsupported"}, {"distance": "dot_product"}, {"normalization": "none"},
+    {"encoding": "not-a-registered-encoding"}, {"max_input_tokens": 0},
+    {"max_input_tokens": -1}, {"max_input_tokens": True}, {"max_input_tokens": 1.5},
+    {"max_input_tokens": 8193}, {"additional": float("nan")}, {"additional": float("inf")},
+])
+def test_profile_rejects_unsupported_or_nonfinite_configuration(mysql_db, changes):
+    from tribal.errors import TribalError
+    from tribal.storage import ensure_profile
+    configuration = dict(wrapper="tribal-title-headings-v1", encoding="cl100k_base", max_input_tokens=8192,
+                         distance="cosine", normalization="l2-float32-v1")
+    with pytest.raises(TribalError) as failure:
+        ensure_profile(mysql_db, key="bad-config-" + uuid.uuid4().hex, configuration={**configuration, **changes})
+    assert failure.value.code == "E_ARGUMENT"
+    json.dumps(failure.value.as_dict(), allow_nan=False)
+
+
+@pytest.mark.parametrize("missing", ["wrapper", "encoding", "max_input_tokens", "distance", "normalization"])
+def test_profile_requires_complete_explicit_configuration(mysql_db, missing):
+    from tribal.errors import TribalError
+    from tribal.storage import ensure_profile
+    configuration = dict(wrapper="tribal-title-headings-v1", encoding="cl100k_base", max_input_tokens=8192,
+                         distance="cosine", normalization="l2-float32-v1")
+    del configuration[missing]
+    with pytest.raises(TribalError) as failure:
+        ensure_profile(mysql_db, key="missing-config-" + uuid.uuid4().hex, configuration=configuration)
+    assert failure.value.code == "E_ARGUMENT"
+
+
+def test_custom_model_positive_limit_and_extra_finite_json_are_immutable(mysql_db):
+    from tribal.errors import TribalError
+    from tribal.storage import ensure_profile
+    key = "custom-profile-" + uuid.uuid4().hex
+    config = dict(wrapper="tribal-title-headings-v1", encoding="cl100k_base", max_input_tokens=20000,
+                  distance="cosine", normalization="l2-float32-v1", additional={"revision": [1, 2.5, "界"]})
+    result = ensure_profile(mysql_db, key=key, provider="test", model="explicit-test-model", dimensions=3, configuration=config)
+    assert result["profile"]["configuration"] == config
+    with pytest.raises(TribalError) as failure:
+        ensure_profile(mysql_db, key=key, provider="test", model="explicit-test-model", dimensions=3,
+                       configuration={**config, "additional": {"revision": [2]}})
+    assert failure.value.code == "E_CONFLICT"
+
+
+@pytest.mark.parametrize("write_path", ["insert", "update"])
+def test_native_vector_dimension_guards_reject_both_write_paths(mysql_db, active_kb, make_note, write_path):
+    from tribal.errors import TribalError
+    from tribal.publication import ingest_vault
+    from acceptance_helpers import execute
+    result = ingest_vault(mysql_db, {"vector.md": make_note()}, knowledge_base=active_kb["key"])
+    assert result["ok"] is True
+    chunk_id = result["documents"]["vector.md"]["chunk_ids"][0]
+    profile_id = uuid.UUID(active_kb["profile"]["id"]).bytes
+    insert = "INSERT INTO chunk_embeddings(chunk_id,profile_id,dimensions,embedding,input_hash) VALUES (%s,%s,%s,STRING_TO_VECTOR(%s),%s)"
+    if write_path == "update":
+        execute(mysql_db, insert, (chunk_id, profile_id, 3, "[1,0,0]", bytes(32)))
+    with pytest.raises(TribalError) as failure:
+        if write_path == "insert":
+            execute(mysql_db, insert, (chunk_id, profile_id, 3, "[1,0]", bytes(32)))
+        else:
+            execute(mysql_db, "UPDATE chunk_embeddings SET embedding=STRING_TO_VECTOR(%s) WHERE chunk_id=%s AND profile_id=%s", ("[1,0]", chunk_id, profile_id))
+    assert failure.value.code == "E_DATABASE"
+    rows = execute(mysql_db, "SELECT CAST(embedding AS BINARY) AS vector FROM chunk_embeddings WHERE chunk_id=%s AND profile_id=%s", (chunk_id, profile_id))
+    if write_path == "insert":
+        assert rows == []
+    else:
+        assert bytes(rows[0]["vector"]) == struct.pack("<fff", 1, 0, 0)
+
+
+def test_unrecognized_future_schema_version_is_refused(mysql_db):
+    from tribal.errors import TribalError
+    from tribal.storage import migrate
+    version = "9999-future-contract-" + uuid.uuid4().hex
+    sql(mysql_db, "INSERT INTO schema_migrations(version,checksum) VALUES (%s,%s)", (version, bytes(32)))
+    try:
+        with pytest.raises(TribalError) as failure:
+            migrate(mysql_db)
+        assert failure.value.code == "E_MIGRATION"
+    finally:
+        sql(mysql_db, "DELETE FROM schema_migrations WHERE version=%s", (version,))

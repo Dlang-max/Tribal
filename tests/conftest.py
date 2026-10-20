@@ -54,3 +54,25 @@ def registered_kb(mysql_db):
     kb = ensure_knowledge_base(mysql_db, key=key, name="Independent acceptance")
     domain = ensure_domain(mysql_db, knowledge_base=key, key="research", name="Research")
     return dict(key=key, id=kb["knowledge_base"]["id"], domain=domain["domain"])
+
+
+@pytest.fixture
+def active_kb(mysql_db, registered_kb):
+    from tribal.embeddings import activate_profile
+    from tribal.storage import ensure_profile
+    configuration = dict(wrapper="tribal-title-headings-v1", encoding="cl100k_base",
+                         max_input_tokens=8192, distance="cosine", normalization="l2-float32-v1")
+    profile = ensure_profile(mysql_db, key="independent-test-3-v1", dimensions=3,
+                             configuration=configuration)["profile"]
+    activate_profile(mysql_db, knowledge_base=registered_kb["key"], profile_id=profile["id"])
+    return {**registered_kb, "profile": profile}
+
+
+@pytest.fixture
+def make_note(active_kb):
+    from uuid import uuid4
+    from acceptance_helpers import note
+    def factory(body="A useful observation.\n", **changes):
+        metadata = {"knowledge_base": active_kb["key"], "id": str(uuid4()), **changes}
+        return note(body, **metadata)
+    return factory
