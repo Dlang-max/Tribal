@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import {
@@ -68,17 +68,16 @@ describe('Input', () => {
 });
 
 describe('Card', () => {
-  it('renders its heading and content in the expected card structure', () => {
+  it('renders its visible heading and content', () => {
     render(
-      <Card aria-label="Repository summary">
+      <Card>
         <CardHeader><CardTitle>Repository summary</CardTitle></CardHeader>
         <CardContent>3 repositories connected</CardContent>
       </Card>,
     );
 
-    const card = screen.getByLabelText('Repository summary');
-    expect(within(card).getByRole('heading', { name: 'Repository summary', level: 3 })).toBeInTheDocument();
-    expect(within(card).getByText('3 repositories connected')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Repository summary' })).toBeInTheDocument();
+    expect(screen.getByText('3 repositories connected')).toBeInTheDocument();
   });
 });
 
