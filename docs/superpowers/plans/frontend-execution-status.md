@@ -1,29 +1,30 @@
-# Frontend execution checkpoint
+# Frontend execution checkpoint — complete
 
-The frontend foundation, theme, shared controls, application shell, and
-Knowledge Explorer source and test tracks completed their review gates. Their
-approved commits are integrated on `feat/frontend-assembly`.
+The six frontend tasks are implemented and assembled on `feat/frontend-assembly`.
+The frontend remains in its isolated worktree at `/home/daniel-lang/.codex/worktrees/e1da/Tribal`; the original checkout contains concurrent backend/Kubernetes work and was not overwritten or merged into.
 
-Task 6 source integration is on `feat/frontend-assembly` in the assembly
-worktree. The entrypoint now mounts the application shell with the sample
-Knowledge Explorer. Preview run instructions are in the root `README.md`.
+All implementation, test, and independent review agents used `gpt-6-luna` with high reasoning after the user's model-selection instruction. Implementors authored application code; separate testers authored tests. Writers used separate worktrees/descriptive branches and focused commits. Reviewers made no source edits.
 
-Integration checks completed:
+| Task | Source review rounds | Test review rounds | Final result |
+| --- | --- | --- | --- |
+| Foundation | 1 | 1 | Green for source and tests |
+| Theme | 1 | 3 | Green for source and tests |
+| Shared controls | 2 | 2 | Green for source and tests |
+| Application shell | 2 | 2 | Green for source and tests |
+| Knowledge explorer | 2 | 3 | Green for source and tests |
+| Integration | 2 | 2 | Green for source and tests |
 
-- `npm ci`, `npm run typecheck`, and `npm run build` passed.
-- Playwright Chromium manual checks passed for navigation, graph selection,
-  filtering, project reset, empty states, local Inter font loading, and narrow
-  layout. Browser screenshots are recorded in the integration report.
-- Sample graphs use Tribal v1 classes and directed predicates. They remain
-  synthetic, with explicit example Agent session and Developer identity data.
-- Task 6 test baseline `4380377` passed 27 unit and 3 browser tests. Integration
-  source review round 1 found that the sample graph omitted the required
-  WorkItem creator and Agent session relationships. Source follow-up is
-  committed as `ccbe2e4`; source re-review and test re-review remain pending.
-- The latest production build reports a 564.56 kB JavaScript bundle and the default
-  Vite chunk-size advisory.
-- The integration tester updated the prior placeholder and fixture assertions
-  on test baseline `4380377`; the integration implementor did not modify tests.
+The interrupted initial foundation reviewer issued no verdict and was replaced when the user requested Luna High. The initial setup agent preceded that model-selection instruction.
 
-No backend, authentication, live data connection, or graph editing is part of
-this preview.
+Final parent verification in the assembly worktree:
+
+- `npm test`: 8 files, 27 tests passed.
+- `npm run build`: TypeScript check and production build passed.
+- `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/google-chrome npm run test:e2e`: 3 Chromium browser tests passed.
+- `git diff --check`: clean.
+
+Browser coverage includes local page navigation, graph selection/inspector/neighbor navigation, WorkItem creator and AgentSession references, search/type-filter/project reset, zoom/fit/pan, keyboard access, 390px layout overflow, local Inter loading, and background color. Relationship selection uses the accessible list; graph-node selection and viewport controls are tested in the actual canvas. Unit tests cover the edge callback.
+
+The preview uses labeled synthetic data and has no backend, authentication, live data connection, persistence, or graph editing. Sample graph types and links follow the current v1 ontology, including ProducedBy and HasSession completeness. Vite emits an informational advisory for the approximately 565 kB JavaScript chunk; production build succeeds.
+
+Run `npm ci` then `npm run dev` from the frontend worktree. For bundled browser testing, install Chromium with `npx playwright install chromium`; the environment variable above selects an existing system Chrome instead.
