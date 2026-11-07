@@ -45,8 +45,9 @@ describe('global theme stylesheet', () => {
 
   it('provides visible keyboard focus and a narrow-screen text adjustment', () => {
     expect(themeCss).toMatch(/:focus-visible\s*\{[^}]*outline:\s*2px solid var\(--ring\)/s);
-    expect(themeCss).toMatch(/@media\s*\(max-width:\s*640px\)/);
-    expect(themeCss).toMatch(/body\s*\{[^}]*font-size:\s*0\.875rem/s);
+    expect(themeCss).toMatch(
+      /@media\s*\(max-width:\s*640px\)\s*\{\s*body\s*\{[^}]*font-size:\s*0\.875rem/s,
+    );
     expect(themeCss).toMatch(/html\s*\{[^}]*min-width:\s*320px/s);
   });
 });
