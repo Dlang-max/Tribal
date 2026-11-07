@@ -1,0 +1,13 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: tribal-project-provisioner
+  namespace: tribal
+subjects:
+  - kind: ServiceAccount
+    name: tribal-management
+    namespace: tribal
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: tribal-project-provisioner

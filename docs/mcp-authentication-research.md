@@ -1,35 +1,23 @@
-# Tribal MCP authentication: hackathon approach
+# Tribal MCP authentication and demo topology
 
-Updated: 2026-11-07. Research and proposal only; no authentication has been implemented or exercised. The user clarified that this is a hackathon idea and the solution should stay simple.
+Updated: 2026-11-07. This note records the approved local demo approach and its limits. It is implementation guidance, not a claim of live GitHub login or a deployed cluster.
 
-## What we need to demonstrate
+## Current demo
 
-A person signs in with GitHub, creates a project on Tribal, and gets a remote MCP URL. They connect Codex to that URL, authorize it through GitHub, and the agent can access that project's context. Tribal hosts the app.
+The approved implementation plan uses a management app plus one stateless worker Deployment and Service per project in local KinD. A single image runs either `python -m tribal management` or `python -m tribal worker`. The management app uses Authlib for browser GitHub sign-in; FastMCP's GitHub provider handles MCP OAuth, discovery, PKCE, token issuance, and validation. SQLite persists project ownership and status. A per-project allowlist is checked for each tool call. See the [approved Kubernetes demo plan](superpowers/plans/2026-11-07-kubernetes-project-mcp-demo.md) and [connection walkthrough](connecting-codex-to-tribal.md).
 
-## Small proposed implementation
+The current sample tool returns `get_project_context` with `sample: true`. It is not connected to the remote knowledge base or graph. Each project starts with its creator as its only allowed GitHub account. There are no roles, invitations, or enterprise SAML enforcement.
 
-- Run one hosted application with a project-specific MCP route, such as `/projects/<id>/mcp`. Project creation adds a record and route binding in that app.
-- Use an existing MCP OAuth integration with GitHub sign-in. Keep its authorization endpoints in the same deployment when supported. Let the integration handle discovery, browser callbacks, PKCE, token issuance, and validation.
-- Store a small project record: ID, name, creator's GitHub account ID, allowed GitHub account IDs, and knowledge-base binding. Reuse existing project IDs; keep access settings separate from ontology fields. The creator is initially allowed; a simple configured access list is enough for demo collaborators.
-- Give allowed members the same context access. Check the project access list on each request and bind its knowledge-base calls to that project.
-- Use one simple persistent store for project/access records; select it during implementation. Use clearly labeled sample context while the knowledge-base service is unavailable.
+## OAuth and public URL
 
-This replaces the earlier recommendation to begin with a separate authorization-broker service and a detailed role system. Runtime/library choice remains an implementation decision. FastMCP's GitHub OAuth bridge is a candidate if Python is used; verify it works with the project's endpoint/resource configuration before adopting it. [FastMCP OAuth proxy](https://gofastmcp.com/docs/servers/auth/oauth-proxy).
+Both management and project MCP endpoints need the same GitHub OAuth application. Management uses `https://HOST/auth/callback`; project workers use callbacks below `https://HOST/projects/{project-id}/auth/callback`. Register `https://HOST/` as the callback URL with wildcard matching enabled so both callback paths are allowed. GitHub warns that wildcard matching permits callback subdirectories and subdomains; use a dedicated host that you control for this app. Do not enable this on a shared, untrusted callback domain.
 
-## How authentication works
+Set `PUBLIC_BASE_URL` to the public HTTPS origin before starting management or creating projects. A changed tunnel host requires updating this setting and the OAuth app callback, restarting management, and recreating demo projects whose stored MCP URLs use the old origin. Quick Tunnels are temporary, provide a changing `trycloudflare.com` hostname, and are intended for development. The demo uses Streamable HTTP with stateless JSON responses, not SSE.
 
-The developer authorizes their MCP client in a browser. The client then sends a Tribal access token on agent requests. The existing OAuth integration should issue tokens for the intended MCP resource and validate them on every request; GitHub API tokens stay inside the sign-in integration. [MCP authorization](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization).
+## Earlier shared-app proposal
 
-GitHub supplies the person's identity through its OAuth callback and authenticated user API. Store the account ID as the identity key. [GitHub OAuth](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps), [authenticated user API](https://docs.github.com/en/rest/users/users#get-the-authenticated-user).
+The original research proposed a single shared application with project-specific MCP routes and left hosting and runtime open. That proposal is superseded for this local demo by separate per-project Kubernetes workers sharing one image. The broader product goal remains remote Tribal MCP access; this demo does not decide production hosting or knowledge-base integration.
 
-Codex documents remote MCP OAuth and `codex mcp login <server-name>`, so we can use its existing login flow. [Official Codex MCP documentation](https://learn.chatgpt.com/docs/extend/mcp?surface=cli).
+## Verification boundary
 
-For this demo, “GitHub SSO” is interpreted as Sign in with GitHub. Enterprise organization SAML enforcement is deferred under this proposed scope; it is a separate GitHub feature. [GitHub apps and SSO](https://docs.github.com/en/enterprise-cloud@latest/authentication/authenticating-with-single-sign-on/authorizing-an-app-for-single-sign-on).
-
-## Keep the demo focused
-
-Use the auth library's standard credential lifecycle. Leave custom roles, invitation workflows, unattended service accounts, separate auth infrastructure, per-project containers, and additional Kubernetes work for later.
-
-The basic checks are: GitHub login works, an allowed agent can read context, a nonmember is denied, and one project cannot retrieve another project's context. No live authentication or hosting check has been performed yet.
-
-See the [four small work items](work-items/github-authenticated-project-mcp-servers.md).
+Local source and packaging checks do not prove GitHub consent, a working OAuth callback, Kubernetes provisioning, or a live Codex connection. Report those as unverified unless they have actually been run with credentials and a cluster. KinD's default CNI may not enforce the included NetworkPolicies.

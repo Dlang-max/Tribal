@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tribal-management
+  namespace: tribal
+data:
+  # Deliberately invalid until Task 4's tunnel setup replaces this value.
+  PUBLIC_BASE_URL: "REPLACE_WITH_PUBLIC_HTTPS_URL"
+  DATABASE_PATH: /data/tribal.sqlite3
+  WORKER_IMAGE: tribal-mcp-demo:local
+  K8S_TEMPLATE_ROOT: /app/k8s

@@ -1,0 +1,20 @@
+# Final whole-branch integration review
+
+## Verdict
+
+**SPEC: GREEN LIGHT. QUALITY: GREEN LIGHT** for the approved local KinD demo scope. I found no material cross-component blocker in the launch, authentication, routing, storage, dependency, or packaging path after tracing the documented project-creation flow through to the worker MCP endpoint.
+
+## Integration trace reviewed
+
+- The walkthrough builds and loads the shared image before creating the namespace-scoped management and Traefik resources. Management starts with the documented `PUBLIC_BASE_URL`, OAuth credentials, signing keys, SQLite path, image name, and packaged template root. `build_management_app()` consumes those names and constructs the persistent store and in-cluster Kubernetes provisioner; missing required values fail startup.
+- Browser login redirects to the origin `/auth/callback`; Authlib fetches GitHub `/user` and stores only the verified positive numeric ID and login in the signed session. Project creation requires that session plus CSRF, writes an owner-scoped SQLite row and creator-only membership, and returns a project status URL. Management startup retries persisted incomplete records.
+- Provisioning renders the five fixed YAML templates with structured YAML parsing and single-pass scalar substitution, then idempotently creates or patches the Deployment, Service, ConfigMap, Secret, and Ingress. The worker consumes project ID/name/allowlist/public origin from its ConfigMap, shared GitHub credentials from `SecretKeyRef`, and its per-project signing key from its Secret. Management's namespaced Role matches the provisioner's create/patch and Deployment readiness calls; workers have no Kubernetes token mount or RoleBinding.
+- Worker startup forwards the FastMCP child lifespan, exposes the library-generated project-specific OAuth discovery routes at the host root, and mounts MCP/OAuth operations under `/projects/{uuid}`. The worker Ingress preserves those discovery and MCP paths without rewrites. The Traefik Service targets the configured web entrypoint; management owns `/`, while the more-specific project and discovery paths route to project Services. The project Service selector includes the project ID, preserving separation across workers.
+- FastMCP validates each worker's token; the tool middleware checks the verified GitHub subject against the worker's creator allowlist for every call. After provisioning, management only persists `ready` when the Deployment has observed and completed its current rollout and the final live readiness check succeeds. Status failures are stored for the owner. SQLite uses the mounted `/data` PVC, while the single management replica and `Recreate` strategy avoid concurrent writers during restart.
+- The image installs the locked dependencies, then installs the `src/` package without re-resolving dependencies; package data includes the UI template and Kubernetes templates are copied to the configured `/app/k8s` path. The reported isolated wheel check covers runtime modules, template, installation, and CLI startup.
+
+## Evidence and limits
+
+Reviewed the approved plan, current source, Kubernetes manifests/templates, Dockerfile, connection walkthrough, implementation/test reports, final task review reports, and relevant Tribal vault architecture/status/MCP notes. The coordinating agent reports 67 passing tests, clean `pip check`, `compileall`, and `git diff --check`; the task reviewers independently cleared all four implementation and test gates. Four existing FastAPI router `on_event` deprecation warnings are non-blocking for this demo and do not indicate a failed lifespan check.
+
+Docker, KinD/Kubernetes, cloudflared, and live GitHub OAuth credentials were unavailable. Therefore this green light covers code/configuration integration and isolated checks only; it does not claim a live image build, cluster apply, Traefik request, GitHub OAuth round trip, or end-to-end Codex MCP session. The documented NetworkPolicy caveat remains accurate for default KinD CNI.

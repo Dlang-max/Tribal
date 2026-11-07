@@ -1,53 +1,24 @@
-# Hosted project MCP servers: hackathon work items
+# GitHub-authenticated project MCP servers: implementation status
 
-Updated: 2026-11-07. Proposed implementation tasks only. This four-item backlog replaces the earlier eight-item AUTH-01 through AUTH-08 proposal after the user clarified the hackathon scope. Tribal hosts the app; GitHub sign-in authorizes developers and their agents. See the [short authentication research](../mcp-authentication-research.md).
+Updated: 2026-11-07. This document replaces the earlier four-item shared-app proposal with the approved local KinD implementation tasks. It is a status record, not proof of live deployment or OAuth.
 
-## Shared assumptions
+## Approved topology
 
-Use one hosted app, project-specific MCP routes, an existing GitHub OAuth integration, and a simple allowed-user list. All allowed members have the same context access. Runtime/library choice belongs to the auth implementer; use that same runtime throughout.
+One container image runs a GitHub-authenticated management app and one stateless MCP worker per project. Management stores project records in SQLite and provisions each worker's Deployment, Service, ConfigMap, Secret, and Ingress. Workers validate FastMCP GitHub OAuth tokens and check the numeric GitHub account ID against that project's allowlist on every tool call. The sample tool is explicitly labeled; the knowledge base is not connected.
 
-Keep integration to three small boundaries: auth returns a verified GitHub account ID, project lookup returns that project's access list and knowledge-base binding, and MCP context access receives the resolved project ID. Agree on their concrete shapes when work starts. Tasks 1–3 can be developed independently using substitutes; integration uses the actual implementations.
+## Task status
 
-## DEMO-01 — Get GitHub login working for an MCP client
+- **Task 1 — authentication and worker:** implemented. Provides Authlib browser login/session/CSRF helpers, FastMCP GitHub OAuth workers, health routes, and the sample-context tool. See [implementation report](../superpowers/plans/task1-implementation-report.md). The latest task test report records its checks; independent review status is tracked in the checkpoint.
+- **Task 2 — management and provisioning:** implemented. Provides the SQLite project store, project page/API, provision orchestration, readiness checks, and YAML-safe worker resource renderer. See [implementation report](../superpowers/plans/task2-implementation-report.md).
+- **Task 3 — Kubernetes and image:** implemented. Provides fixed manifests, five project worker templates, least-scope namespaced RBAC, network policies, and the shared Docker image. See [implementation report](../superpowers/plans/task3-implementation-report.md).
+- **Task 4 — assembly and instructions:** implemented in `src/tribal/application.py` and `src/tribal/__main__.py`; this task adds the README and [Codex connection walkthrough](../connecting-codex-to-tribal.md). The [implementation report](../superpowers/plans/task4-implementation-report.md) records local checks and limits.
 
-**Own:** `src/auth/`.
+## Operational limits
 
-**Build:** Choose a small existing MCP OAuth integration with GitHub support and configure it in the app. Support browser sign-in, expose the verified GitHub account ID for project creation/access checks, and let the library handle MCP metadata, PKCE, and credentials. Document the GitHub App setup and required environment variables. Start with a single example project endpoint.
+Use a controlled dedicated HTTPS callback host because GitHub wildcard callback matching permits project OAuth subpaths. Quick Tunnels are ephemeral, intended for development, and do not support SSE; this app uses stateless JSON responses over Streamable HTTP. The default KinD CNI may not enforce NetworkPolicies. Enterprise SAML, roles, invitations, real graph data, and production hosting remain out of scope.
 
-**Done when:** Codex can authorize the example endpoint through GitHub and make an authenticated request. Missing or invalid credentials fail. Tokens are valid for the intended MCP resource; GitHub secrets remain on the service.
+Do not apply the empty `*.example.yaml` Secrets. Create the OAuth and signing Secrets from operator-supplied values, keep them out of version control, and set the public origin before starting management. See the walkthrough for exact commands and cleanup.
 
-**Dependency:** None; use a fixed example project and allowed account initially. Share the runtime choice early with the other implementers.
+## Historical proposal
 
-## DEMO-02 — Create projects and return MCP URLs
-
-**Own:** `src/projects/`.
-
-**Build:** Add a minimal authenticated create-project operation. Save the project ID, name, creator's verified GitHub account ID, allowed account IDs, and knowledge-base binding in a simple persistent store. Initially allow the creator. Return its hosted MCP URL and provide lookup/access-list helpers. A configured list of collaborators is enough; no invitation UI is required.
-
-**Done when:** A signed-in person can create two projects with distinct URLs, and both records survive an app restart. Anonymous creation fails. Lookup returns only the requested project's configuration.
-
-**Dependency:** Develop with a substitute verified identity. Connect DEMO-01 for the real flow.
-
-## DEMO-03 — Serve context through protected project MCP routes
-
-**Own:** `src/mcp/`.
-
-**Build:** Serve `/projects/<id>/mcp` using the chosen MCP library. Resolve the project from the route, require a valid token for the endpoint's configured resource, and check its allowed GitHub account IDs. Bind all context operations to that project. Connect the context service if available; otherwise expose a clearly labeled sample read operation. Writes, when available, use the context updater.
-
-**Done when:** An allowed user can connect and read their project's context, a nonmember is denied, and changing a route or tool argument cannot expose another project's data. Sample data is clearly identified.
-
-**Dependency:** Develop with substitute identity/project/context adapters. Integrate DEMO-01 and DEMO-02 for real access.
-
-## DEMO-04 — Run the hosted demo and document connection
-
-**Own:** `src/app/` for app assembly and `docs/connecting-codex-to-tribal.md`. Add container assets under `docker/` only if the hosting method needs them.
-
-**Build:** Wire the three components into one app, document running it at an HTTPS URL, and provide copyable Codex add-server/login commands. Include GitHub callback setup and a short demonstration: sign in, create a project, connect an agent, read context. Choose the simplest available hosting method.
-
-**Done when:** Someone can follow the instructions and complete the demo. Also show a nonmember being denied. State whether the context backend is real or illustrative.
-
-**Dependency:** Documentation can start immediately; the real demo needs DEMO-01 through DEMO-03. Do not add another service or Kubernetes setup unless hosting actually requires it.
-
-## Verification
-
-Use manual demo checks. Do not write tests unless explicitly requested, following repository guidance. No implementation, deployment, or live login has been performed by this planning task.
+The former four items proposed a single shared-app MCP route, a runtime-neutral store, and a generic hosted demonstration. The approved topology above supersedes those assumptions; the backlog is retained at this path for continuity, but the old architecture is no longer an active proposal.

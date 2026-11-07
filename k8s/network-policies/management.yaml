@@ -1,0 +1,31 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+# The default KinD CNI may not enforce NetworkPolicies; these rules document
+# intended boundaries and do not claim isolation unless the chosen CNI enforces them.
+# TCP/443 covers GitHub OAuth/API and the in-cluster Kubernetes API; DNS needs 53.
+metadata:
+  name: tribal-management
+  namespace: tribal
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: tribal-management
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: traefik
+      ports:
+        - protocol: TCP
+          port: 8000
+  egress:
+    - ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+        - protocol: TCP
+          port: 443
