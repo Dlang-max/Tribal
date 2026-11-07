@@ -64,9 +64,12 @@
 .ke-field dd { margin: 0; font-size: 12px; overflow-wrap: anywhere; }
 .ke-field pre { margin: 0; white-space: pre-wrap; font: 11px/1.45 ui-monospace, monospace; }
 .ke-connection-list { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
+.ke-connection-list li { display: grid; gap: 4px; }
+.ke-connection-list li > span { color: var(--ke-muted); font-size: 10px; }
 .ke-connection-list button { display: grid; width: 100%; gap: 3px; padding: 8px; border: 1px solid #59436c; border-radius: 8px; color: var(--ke-text); text-align: left; background: #100B18; cursor: pointer; font-size: 10px; }
 .ke-connection-list strong { color: var(--ke-accent); }
 .ke-connection-list small { color: var(--ke-muted); }
+.ke-connection-list .ke-connection-detail { border-color: transparent; padding: 2px 8px 6px; color: var(--ke-muted); background: transparent; font-size: 9px; }
 .ke-endpoints { display: grid; gap: 13px; margin: 0; }
 .ke-endpoints div { display: grid; gap: 4px; }
 .ke-endpoints dd { margin: 0; font-size: 12px; }
