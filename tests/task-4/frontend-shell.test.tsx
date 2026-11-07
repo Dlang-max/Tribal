@@ -95,8 +95,14 @@ describe('frontend shell', () => {
   it('gives compact navigation controls accessible names', () => {
     render(<App />);
 
-    expect(screen.getByRole('navigation', { name: 'Main navigation' })).toBeInTheDocument();
+    const navigation = screen.getByRole('navigation', { name: 'Main navigation' });
     expect(screen.getByRole('button', { name: 'Open navigation' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Tribal home' })).toBeInTheDocument();
+
+    const explorerButton = within(navigation).getByRole('button', { name: 'Knowledge Explorer' });
+    fireEvent.click(explorerButton);
+
+    expect(explorerButton).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('heading', { level: 1, name: 'Knowledge Explorer' })).toBeInTheDocument();
   });
 });
