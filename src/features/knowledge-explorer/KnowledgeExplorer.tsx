@@ -20,6 +20,7 @@ const sampleProjects: ProjectGraph[] = [
     entities: [
       { id: 'repo-tribal', kind: 'object', type: 'Repository', label: 'Tribal repository', fields: { description: 'Application source and project documentation.', name: 'tribal', url: 'https://github.com/example/tribal' } },
       { id: 'agent-codex', kind: 'object', type: 'Agent', label: 'Codex sample agent', fields: { description: 'An illustrative agent identity for this sample project.', name: 'Codex sample agent', sessionId: 'example-session-001' } },
+      { id: 'session-codex', kind: 'object', type: 'AgentSession', label: 'Codex sample session file', fields: { description: 'Synthetic file reference used to complete the illustrative Agent record.', sessionFile: '2026/11/07/example-session-001.jsonl' } },
       { id: 'task-graph', kind: 'object', type: 'WorkItem', label: 'Knowledge explorer', fields: { description: 'Build an inspection view for project context.', title: 'Knowledge explorer', status: 'in_progress' } },
       { id: 'event-design', kind: 'event', type: 'WorkStarted', label: 'Knowledge explorer work began', fields: { description: 'Illustrative occurrence: work on the Knowledge Explorer began.', timestamp: '2026-11-07T14:30:00-05:00' } },
       { id: 'evidence-ontology', kind: 'object', type: 'Evidence', label: 'Ontology reference', fields: { description: 'Sample supporting material about the project context vocabulary.' } },
@@ -27,8 +28,10 @@ const sampleProjects: ProjectGraph[] = [
     relationships: [
       { id: 'tribal-r1', type: 'References', relationship: { source: 'evidence-ontology', target: 'repo-tribal' } },
       { id: 'tribal-r2', type: 'WorksOn', relationship: { source: 'agent-codex', target: 'task-graph' } },
-      { id: 'tribal-r3', type: 'About', relationship: { source: 'event-design', target: 'task-graph' } },
-      { id: 'tribal-r4', type: 'PerformedBy', relationship: { source: 'event-design', target: 'agent-codex' } },
+      { id: 'tribal-r3', type: 'ProducedBy', relationship: { source: 'task-graph', target: 'agent-codex' } },
+      { id: 'tribal-r4', type: 'HasSession', relationship: { source: 'agent-codex', target: 'session-codex' } },
+      { id: 'tribal-r5', type: 'About', relationship: { source: 'event-design', target: 'task-graph' } },
+      { id: 'tribal-r6', type: 'PerformedBy', relationship: { source: 'event-design', target: 'agent-codex' } },
     ],
   },
   {
