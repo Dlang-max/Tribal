@@ -229,7 +229,7 @@ export default function App({ knowledgeExplorer }: AppProps) {
         <nav className="primary-nav" aria-label="Main navigation">
           {NAVIGATION_ITEMS.map((item) => {
             const Icon = navIcons[item.id];
-            return <button key={item.id} type="button" className={`nav-item${activePage === item.id ? ' active' : ''}`} aria-current={activePage === item.id ? 'page' : undefined} onClick={() => setActivePage(item.id)}><Icon size={17} strokeWidth={1.8} /><span>{item.label}</span>{item.id === 'repositories' && <span className="nav-count">3</span>}</button>;
+            return <button key={item.id} type="button" className={`nav-item${activePage === item.id ? ' active' : ''}`} aria-label={item.label} aria-current={activePage === item.id ? 'page' : undefined} onClick={() => setActivePage(item.id)}><Icon size={17} strokeWidth={1.8} /><span>{item.label}</span>{item.id === 'repositories' && <span className="nav-count">3</span>}</button>;
           })}
         </nav>
         <div className="sidebar-bottom"><div className="help-panel"><span className="help-icon"><CircleHelp size={16} /></span><div><strong>Need a hand?</strong><span>Explore the Tribal guide</span></div><ArrowUpRight size={14} /></div><div className="profile-row"><span className="profile-avatar">DL</span><span className="profile-name"><strong>Daniel Lang</strong><small>Workspace owner</small></span><span className="profile-menu">···</span></div></div>
