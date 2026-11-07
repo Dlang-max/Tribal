@@ -47,7 +47,7 @@
 .ke-canvas .react-flow__controls { overflow: hidden; border: 1px solid #59436c; border-radius: 8px; box-shadow: none; }
 .ke-canvas .react-flow__controls-button { border-bottom-color: #59436c; background: #251833; fill: #F4F0FA; }
 .ke-canvas .react-flow__controls-button:hover { background: #38244b; }
-.ke-canvas .react-flow__attribution { display: none; }
+.ke-canvas .react-flow__attribution { border-radius: 4px; color: var(--ke-muted); background: rgba(16, 11, 24, .88); }
 .ke-node { display: grid; gap: 7px; padding: 12px; }
 .ke-node small { color: var(--ke-accent); font-size: 9px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
 .ke-node strong { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
@@ -91,7 +91,7 @@
   .ke-header { align-items: stretch; flex-direction: column; }
   .ke-project-picker select { width: 100%; }
   .ke-layout { grid-template-columns: 1fr; }
-  .ke-browse { max-height: 430px; }
+  .ke-browse { max-height: none; overflow: visible; }
   .ke-graph-panel { min-height: 420px; }
   .ke-inspector { grid-column: auto; }
 }

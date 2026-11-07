@@ -16,7 +16,6 @@ import {
 } from 'lucide-react';
 import { NAVIGATION_ITEMS, type NavigationId } from '@/shared';
 import { Button, Card, CardContent, CardHeader, CardTitle, Input } from '@/components/ui';
-import '@/theme/index.css';
 import './app.css';
 
 type AppProps = {

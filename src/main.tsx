@@ -1,5 +1,8 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import App from '@/app/App';
+import { KnowledgeExplorer } from '@/features/knowledge-explorer/KnowledgeExplorer';
+import '@/theme/index.css';
 
 const root = document.getElementById('root');
 
@@ -9,10 +12,6 @@ if (!root) {
 
 createRoot(root).render(
   <StrictMode>
-    <main>
-      <h1>Tribal</h1>
-      <p>Shared context for agents and repositories.</p>
-      <p>Local frontend foundation. Sample workspace templates are being assembled.</p>
-    </main>
+    <App knowledgeExplorer={<KnowledgeExplorer />} />
   </StrictMode>,
 );
