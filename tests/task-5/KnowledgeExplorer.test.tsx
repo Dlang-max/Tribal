@@ -3,15 +3,71 @@ import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 import { KnowledgeExplorer } from '@/features/knowledge-explorer/KnowledgeExplorer';
 
-// React Flow relies on ResizeObserver and measured canvas geometry. Keep the
-// alternative list and inspector real while isolating only that visual canvas.
+const graphHarness = vi.hoisted(() => ({
+  latestFlowProps: undefined as {
+    fitView?: boolean;
+    fitViewOptions?: { padding: number };
+    minZoom?: number;
+    maxZoom?: number;
+    nodesDraggable?: boolean;
+    nodesConnectable?: boolean;
+    edgesReconnectable?: boolean;
+    elementsSelectable?: boolean;
+    panOnDrag?: boolean;
+    zoomOnScroll?: boolean;
+  } | undefined,
+  latestControlsProps: undefined as { showInteractive?: boolean } | undefined,
+}));
+
+// React Flow relies on ResizeObserver and measured canvas geometry. The harness
+// exposes props and canvas callbacks while keeping filtering and inspector state real.
 vi.mock('@xyflow/react', async () => {
   const React = await import('react');
+  type Node = { id: string };
+  type Edge = { id: string };
+  type FlowProps = {
+    children?: React.ReactNode;
+    nodes?: Node[];
+    edges?: Edge[];
+    fitView?: boolean;
+    fitViewOptions?: { padding: number };
+    minZoom?: number;
+    maxZoom?: number;
+    nodesDraggable?: boolean;
+    nodesConnectable?: boolean;
+    edgesReconnectable?: boolean;
+    elementsSelectable?: boolean;
+    onNodeClick?: (event: unknown, node: Node) => void;
+    onEdgeClick?: (event: unknown, edge: Edge) => void;
+  };
   return {
     Background: () => null,
-    Controls: () => null,
+    Controls: (props: { showInteractive?: boolean }) => {
+      graphHarness.latestControlsProps = props;
+      return React.createElement('div', { role: 'group', 'aria-label': 'Graph controls' }, [
+        React.createElement('button', { key: 'zoom-in', type: 'button' }, 'Zoom in'),
+        React.createElement('button', { key: 'zoom-out', type: 'button' }, 'Zoom out'),
+        React.createElement('button', { key: 'fit-view', type: 'button' }, 'Fit view'),
+      ]);
+    },
     MiniMap: () => null,
-    ReactFlow: ({ children }: { children?: React.ReactNode }) => React.createElement('div', { 'aria-label': 'Interactive knowledge graph' }, children),
+    ReactFlow: (props: FlowProps) => {
+      graphHarness.latestFlowProps = props;
+      const event = new MouseEvent('click');
+      return React.createElement('div', { 'aria-label': 'Graph canvas' }, [
+        ...(props.nodes ?? []).map((node) => React.createElement('button', {
+          key: node.id,
+          type: 'button',
+          onClick: () => props.onNodeClick?.(event, node),
+        }, `Select graph node ${node.id}`)),
+        ...(props.edges ?? []).map((edge) => React.createElement('button', {
+          key: edge.id,
+          type: 'button',
+          onClick: () => props.onEdgeClick?.(event, edge),
+        }, `Select graph relationship ${edge.id}`)),
+        props.children,
+      ]);
+    },
   };
 });
 
@@ -45,10 +101,10 @@ describe('KnowledgeExplorer', () => {
     render(<KnowledgeExplorer />);
 
     const browser = screen.getByRole('complementary', { name: 'Graph browser' });
-    const entities = within(browser.querySelector('.ke-list-section') as HTMLElement);
-    await user.click(entities.getByRole('button', { name: /Codex assistant/ }));
+    await user.click(within(browser).getByRole('button', { name: /Codex assistantAgent/ }));
     expect(screen.getByRole('heading', { name: 'Codex assistant' })).toBeInTheDocument();
     await user.type(screen.getByRole('searchbox', { name: 'Search entities' }), 'missing');
+    await user.click(screen.getByRole('radio', { name: 'Events' }));
     await user.selectOptions(screen.getByRole('combobox', { name: 'Choose project' }), 'field-notes');
 
     expect(screen.getByRole('searchbox', { name: 'Search entities' })).toHaveValue('');
@@ -56,15 +112,14 @@ describe('KnowledgeExplorer', () => {
     expect(screen.getByText('Illustrative context for a small research project.')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Inspect the graph' })).toBeInTheDocument();
     const fieldNotesBrowser = screen.getByRole('complementary', { name: 'Graph browser' });
-    expect(within(fieldNotesBrowser.querySelector('.ke-list-section') as HTMLElement).getByText('Maya Chen')).toBeInTheDocument();
+    expect(within(fieldNotesBrowser).getByRole('button', { name: /Maya ChenPerson/ })).toBeInTheDocument();
   });
 
   it('selects an entity from the keyboard-operable list and displays arbitrary fields', async () => {
     const user = userEvent.setup();
     render(<KnowledgeExplorer />);
 
-    const browser = screen.getByRole('complementary', { name: 'Graph browser' });
-    const entity = within(browser.querySelector('.ke-list-section') as HTMLElement).getByRole('button', { name: /Codex assistant/ });
+    const entity = screen.getByRole('button', { name: /Codex assistantAgent/ });
     entity.focus();
     await user.keyboard('{Enter}');
 
@@ -84,28 +139,28 @@ describe('KnowledgeExplorer', () => {
 
     const inspector = screen.getByRole('complementary', { name: 'Selection details' });
     expect(within(inspector).getByRole('heading', { name: 'Contains' })).toBeInTheDocument();
-    expect(within(inspector).getByText('source')).toBeInTheDocument();
-    expect(within(inspector).getByText('repo-tribal', { selector: '.ke-endpoints code' })).toBeInTheDocument();
-    expect(within(inspector).getByText('target', { selector: '.ke-field dt' })).toBeInTheDocument();
-    expect(within(inspector).getByText('doc-ontology', { selector: '.ke-endpoints code' })).toBeInTheDocument();
-    const endpointFields = inspector.querySelector('.ke-endpoints');
-    expect(endpointFields?.textContent).toContain('SourceTribal repository');
-    expect(endpointFields?.textContent).toContain('TargetRepository context ontology');
+    expect(within(inspector).getByRole('heading', { name: 'Relationship fields' })).toBeInTheDocument();
+    expect(within(inspector).getByRole('heading', { name: 'Endpoints' })).toBeInTheDocument();
+    expect(within(inspector).getAllByRole('term').map((term) => term.textContent)).toEqual([
+      'source', 'target', 'Source', 'Target',
+    ]);
+    expect(within(inspector).getAllByRole('definition').map((definition) => definition.textContent)).toEqual([
+      'repo-tribal', 'doc-ontology', 'Tribal repository', 'Repository context ontology',
+    ]);
   });
 
   it('navigates from an inspected entity to a related entity and relationship', async () => {
     const user = userEvent.setup();
     render(<KnowledgeExplorer />);
 
-    const browser = screen.getByRole('complementary', { name: 'Graph browser' });
-    const entities = within(browser.querySelector('.ke-list-section') as HTMLElement);
-    await user.click(entities.getByText('Tribal repository').closest('button') as HTMLButtonElement);
+    await user.click(screen.getByRole('button', { name: /Tribal repositoryRepository/ }));
     const inspector = screen.getByRole('complementary', { name: 'Selection details' });
     await user.click(within(inspector).getByRole('button', { name: /Repository context ontology/ }));
     expect(within(inspector).getByRole('heading', { name: 'Repository context ontology' })).toBeInTheDocument();
 
-    const firstConnection = within(inspector.querySelector('.ke-connection-list li') as HTMLElement);
-    await user.click(firstConnection.getByRole('button', { name: 'Inspect relationship' }));
+    const containsConnection = within(inspector).getAllByRole('listitem').find((item) => item.textContent?.includes('Contains'));
+    if (!containsConnection) throw new Error('Expected the Contains connection in the inspector.');
+    await user.click(within(containsConnection).getByRole('button', { name: 'Inspect relationship' }));
     expect(within(inspector).getByRole('heading', { name: 'Contains' })).toBeInTheDocument();
   });
 
@@ -114,5 +169,43 @@ describe('KnowledgeExplorer', () => {
 
     expect(screen.queryByRole('button', { name: /^(Edit|Add|Create|Connect)(\b| )/i })).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/add edge|connect nodes|edit graph/i)).not.toBeInTheDocument();
+  });
+
+  it('configures fit, pan, zoom bounds, controls, and a read-only graph canvas', () => {
+    render(<KnowledgeExplorer />);
+
+    const flowProps = graphHarness.latestFlowProps;
+    const controlsProps = graphHarness.latestControlsProps;
+
+    expect(flowProps?.fitView).toBe(true);
+    expect(flowProps?.fitViewOptions).toEqual({ padding: 0.25 });
+    expect(flowProps?.minZoom).toBe(0.25);
+    expect(flowProps?.maxZoom).toBe(1.8);
+    expect(flowProps?.nodesDraggable).toBe(false);
+    expect(flowProps?.nodesConnectable).toBe(false);
+    expect(flowProps?.edgesReconnectable).toBe(false);
+    expect(flowProps?.elementsSelectable).toBe(true);
+    expect(flowProps?.panOnDrag).not.toBe(false);
+    expect(flowProps?.zoomOnScroll).not.toBe(false);
+    expect(controlsProps?.showInteractive).toBe(false);
+    expect(screen.getByRole('group', { name: 'Graph controls' })).toHaveAccessibleName('Graph controls');
+    expect(screen.getByRole('button', { name: 'Zoom in' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Zoom out' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Fit view' })).toBeInTheDocument();
+    expect(screen.getByText('Drag to pan · scroll to zoom')).toBeInTheDocument();
+  });
+
+  it('selects graph nodes and edges through their real inspector callbacks', async () => {
+    const user = userEvent.setup();
+    render(<KnowledgeExplorer />);
+
+    await user.click(screen.getByRole('button', { name: 'Select graph node agent-codex' }));
+    const inspector = screen.getByRole('complementary', { name: 'Selection details' });
+    expect(within(inspector).getByRole('heading', { name: 'Codex assistant' })).toBeInTheDocument();
+    expect(within(inspector).getByText('provider')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Select graph relationship tribal-r1' }));
+    expect(within(inspector).getByRole('heading', { name: 'Contains' })).toBeInTheDocument();
+    expect(within(inspector).getByRole('heading', { name: 'Endpoints' })).toBeInTheDocument();
   });
 });
