@@ -35,6 +35,8 @@ describe('global theme stylesheet', () => {
     expect(regularFace).toMatch(/Inter-Regular\.otf/);
     expect(boldFace).toMatch(/font-family:\s*Inter/);
     expect(boldFace).toMatch(/Inter-Bold\.otf/);
+    expect(themeCss).toMatch(/html\s*\{[^}]*font-family:\s*Inter,\s*ui-sans-serif,\s*system-ui,\s*sans-serif/s);
+    expect(themeCss).toMatch(/body\s*\{[^}]*font-family:\s*Inter,\s*ui-sans-serif,\s*system-ui,\s*sans-serif/s);
 
     for (const filename of ['Inter-Regular.otf', 'Inter-Bold.otf']) {
       expect(statSync(resolve(process.cwd(), 'src/theme/fonts', filename)).size).toBeGreaterThan(0);
