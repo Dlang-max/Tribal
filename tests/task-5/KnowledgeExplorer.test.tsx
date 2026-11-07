@@ -37,6 +37,8 @@ vi.mock('@xyflow/react', async () => {
     nodesConnectable?: boolean;
     edgesReconnectable?: boolean;
     elementsSelectable?: boolean;
+    panOnDrag?: boolean;
+    zoomOnScroll?: boolean;
     onNodeClick?: (event: unknown, node: Node) => void;
     onEdgeClick?: (event: unknown, edge: Edge) => void;
   };
