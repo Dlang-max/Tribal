@@ -16,11 +16,14 @@ Integration checks completed:
   layout. Browser screenshots are recorded in the integration report.
 - Sample graphs use Tribal v1 classes and directed predicates. They remain
   synthetic, with explicit example Agent session and Developer identity data.
-- The production build reports a 564.14 kB JavaScript bundle and the default
+- Task 6 test baseline `4380377` passed 27 unit and 3 browser tests. Integration
+  source review round 1 found that the sample graph omitted the required
+  WorkItem creator and Agent session relationships. Source follow-up is
+  committed as `ccbe2e4`; source re-review and test re-review remain pending.
+- The latest production build reports a 564.56 kB JavaScript bundle and the default
   Vite chunk-size advisory.
-- `tests/task-1/bootstrap.test.tsx` still asserts the initial foundation
-  placeholder. It was not changed or run by the integration implementor; the
-  integration tester owns updating that expectation for the assembled app.
+- The integration tester updated the prior placeholder and fixture assertions
+  on test baseline `4380377`; the integration implementor did not modify tests.
 
 No backend, authentication, live data connection, or graph editing is part of
 this preview.
