@@ -43,6 +43,7 @@ vi.mock('@xyflow/react', async () => {
     onEdgeClick?: (event: unknown, edge: Edge) => void;
   };
   return {
+    MarkerType: { ArrowClosed: 'arrowclosed' },
     Background: () => null,
     Controls: (props: { showInteractive?: boolean }) => {
       graphHarness.latestControlsProps = props;
@@ -88,12 +89,12 @@ describe('KnowledgeExplorer', () => {
     render(<KnowledgeExplorer />);
 
     await user.type(screen.getByRole('searchbox', { name: 'Search entities' }), 'ontology');
-    expect(screen.getByRole('button', { name: /Repository context ontology/ })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Codex assistant/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Ontology referenceEvidence/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Codex sample agent/ })).not.toBeInTheDocument();
 
     await user.clear(screen.getByRole('searchbox', { name: 'Search entities' }));
     await user.click(screen.getByRole('radio', { name: 'Events' }));
-    expect(screen.getByRole('button', { name: /Graph approach selected/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Knowledge explorer work beganWorkStarted/ })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Tribal repository/ })).not.toBeInTheDocument();
     expect(screen.getByText('No relationships between these entities.')).toBeInTheDocument();
   });
@@ -103,8 +104,8 @@ describe('KnowledgeExplorer', () => {
     render(<KnowledgeExplorer />);
 
     const browser = screen.getByRole('complementary', { name: 'Graph browser' });
-    await user.click(within(browser).getByRole('button', { name: /Codex assistantAgent/ }));
-    expect(screen.getByRole('heading', { name: 'Codex assistant' })).toBeInTheDocument();
+    await user.click(within(browser).getByRole('button', { name: /Codex sample agentAgent/ }));
+    expect(screen.getByRole('heading', { name: 'Codex sample agent' })).toBeInTheDocument();
     await user.type(screen.getByRole('searchbox', { name: 'Search entities' }), 'missing');
     await user.click(screen.getByRole('radio', { name: 'Events' }));
     await user.selectOptions(screen.getByRole('combobox', { name: 'Choose project' }), 'field-notes');
@@ -114,40 +115,40 @@ describe('KnowledgeExplorer', () => {
     expect(screen.getByText('Illustrative context for a small research project.')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Inspect the graph' })).toBeInTheDocument();
     const fieldNotesBrowser = screen.getByRole('complementary', { name: 'Graph browser' });
-    expect(within(fieldNotesBrowser).getByRole('button', { name: /Maya ChenPerson/ })).toBeInTheDocument();
+    expect(within(fieldNotesBrowser).getByRole('button', { name: /Maya Chen \(sample identity\)Developer/ })).toBeInTheDocument();
   });
 
   it('selects an entity from the keyboard-operable list and displays arbitrary fields', async () => {
     const user = userEvent.setup();
     render(<KnowledgeExplorer />);
 
-    const entity = screen.getByRole('button', { name: /Codex assistantAgent/ });
+    const entity = screen.getByRole('button', { name: /Codex sample agentAgent/ });
     entity.focus();
     await user.keyboard('{Enter}');
 
     const inspector = screen.getByRole('complementary', { name: 'Selection details' });
-    expect(within(inspector).getByRole('heading', { name: 'Codex assistant' })).toBeInTheDocument();
-    expect(within(inspector).getByText('provider')).toBeInTheDocument();
-    expect(within(inspector).getByText('OpenAI')).toBeInTheDocument();
-    expect(within(inspector).getByText('capabilities')).toBeInTheDocument();
-    expect(within(inspector).getByText(/code review/)).toBeInTheDocument();
+    expect(within(inspector).getByRole('heading', { name: 'Codex sample agent' })).toBeInTheDocument();
+    expect(within(inspector).getByText('sessionId')).toBeInTheDocument();
+    expect(within(inspector).getByText('example-session-001')).toBeInTheDocument();
+    expect(within(inspector).getByText('description')).toBeInTheDocument();
+    expect(within(inspector).getByText(/illustrative agent identity/)).toBeInTheDocument();
   });
 
   it('inspects a relationship and exposes its source and target endpoints', async () => {
     const user = userEvent.setup();
     render(<KnowledgeExplorer />);
 
-    await user.click(screen.getByRole('button', { name: /Contains.*Tribal repository.*Repository context ontology/ }));
+    await user.click(screen.getByRole('button', { name: /References.*Ontology reference.*Tribal repository/ }));
 
     const inspector = screen.getByRole('complementary', { name: 'Selection details' });
-    expect(within(inspector).getByRole('heading', { name: 'Contains' })).toBeInTheDocument();
+    expect(within(inspector).getByRole('heading', { name: 'References' })).toBeInTheDocument();
     expect(within(inspector).getByRole('heading', { name: 'Relationship fields' })).toBeInTheDocument();
     expect(within(inspector).getByRole('heading', { name: 'Endpoints' })).toBeInTheDocument();
     expect(within(inspector).getAllByRole('term').map((term) => term.textContent)).toEqual([
       'source', 'target', 'Source', 'Target',
     ]);
     expect(within(inspector).getAllByRole('definition').map((definition) => definition.textContent)).toEqual([
-      'repo-tribal', 'doc-ontology', 'Tribal repository', 'Repository context ontology',
+      'evidence-ontology', 'repo-tribal', 'Ontology reference', 'Tribal repository',
     ]);
   });
 
@@ -157,13 +158,13 @@ describe('KnowledgeExplorer', () => {
 
     await user.click(screen.getByRole('button', { name: /Tribal repositoryRepository/ }));
     const inspector = screen.getByRole('complementary', { name: 'Selection details' });
-    await user.click(within(inspector).getByRole('button', { name: /Repository context ontology/ }));
-    expect(within(inspector).getByRole('heading', { name: 'Repository context ontology' })).toBeInTheDocument();
+    await user.click(within(inspector).getByRole('button', { name: /Ontology reference/ }));
+    expect(within(inspector).getByRole('heading', { name: 'Ontology reference' })).toBeInTheDocument();
 
-    const containsConnection = within(inspector).getAllByRole('listitem').find((item) => item.textContent?.includes('Contains'));
-    if (!containsConnection) throw new Error('Expected the Contains connection in the inspector.');
-    await user.click(within(containsConnection).getByRole('button', { name: 'Inspect relationship' }));
-    expect(within(inspector).getByRole('heading', { name: 'Contains' })).toBeInTheDocument();
+    const referenceConnection = within(inspector).getAllByRole('listitem').find((item) => item.textContent?.includes('References'));
+    if (!referenceConnection) throw new Error('Expected the References connection in the inspector.');
+    await user.click(within(referenceConnection).getByRole('button', { name: 'Inspect relationship' }));
+    expect(within(inspector).getByRole('heading', { name: 'References' })).toBeInTheDocument();
   });
 
   it('does not expose graph editing or connection creation controls', () => {
@@ -203,11 +204,11 @@ describe('KnowledgeExplorer', () => {
 
     await user.click(screen.getByRole('button', { name: 'Select graph node agent-codex' }));
     const inspector = screen.getByRole('complementary', { name: 'Selection details' });
-    expect(within(inspector).getByRole('heading', { name: 'Codex assistant' })).toBeInTheDocument();
-    expect(within(inspector).getByText('provider')).toBeInTheDocument();
+    expect(within(inspector).getByRole('heading', { name: 'Codex sample agent' })).toBeInTheDocument();
+    expect(within(inspector).getByText('sessionId')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Select graph relationship tribal-r1' }));
-    expect(within(inspector).getByRole('heading', { name: 'Contains' })).toBeInTheDocument();
+    expect(within(inspector).getByRole('heading', { name: 'References' })).toBeInTheDocument();
     expect(within(inspector).getByRole('heading', { name: 'Endpoints' })).toBeInTheDocument();
   });
 });
