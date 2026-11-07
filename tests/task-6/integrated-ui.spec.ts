@@ -30,13 +30,32 @@ test('knowledge explorer supports graph inspection, related-record navigation, a
   const browser = page.getByRole('complementary', { name: 'Graph browser' });
   const inspector = page.getByRole('complementary', { name: 'Selection details' });
   const search = page.getByRole('searchbox', { name: 'Search entities' });
+  await expect(browser.getByRole('heading', { name: 'Entities 6' })).toBeVisible();
 
   // A graph node selection populates ontology fields and relationship links.
   await page.locator('.react-flow__node[data-id="agent-codex"]').click();
   await expect(inspector.getByRole('heading', { name: 'Codex sample agent' })).toBeVisible();
   await expect(inspector.getByText('example-session-001')).toBeVisible();
-  await inspector.locator('.ke-connection-list').getByRole('button', { name: /Knowledge explorer WorkItem/ }).click();
+
+  const sessionLink = inspector.locator('.ke-connection-list li').filter({ hasText: 'To · HasSession' });
+  await sessionLink.getByRole('button', { name: /Codex sample session file/ }).click();
+  await expect(inspector.getByRole('heading', { name: 'Codex sample session file' })).toBeVisible();
+  await expect(inspector.locator('.ke-field-list')).toContainText('2026/11/07/example-session-001.jsonl');
+
+  await browser.locator('.ke-list-section').first().getByRole('button', { name: /Codex sample agent Agent/ }).click();
+  await inspector.locator('.ke-connection-list li').filter({ hasText: 'To · WorksOn' }).getByRole('button', { name: /Knowledge explorer WorkItem/ }).click();
   await expect(inspector.getByRole('heading', { name: 'Knowledge explorer' })).toBeVisible();
+
+  const creatorConnection = inspector.locator('.ke-connection-list li').filter({ hasText: 'To · ProducedBy' });
+  await expect(creatorConnection.getByRole('button', { name: /Codex sample agent/ })).toBeVisible();
+  await creatorConnection.getByRole('button', { name: 'Inspect relationship' }).click();
+  await expect(inspector.getByRole('heading', { name: 'ProducedBy', exact: true })).toBeVisible();
+  expect(await inspector.locator('.ke-field-list dt').allTextContents()).toEqual(['source', 'target']);
+  expect(await inspector.locator('.ke-field-list dd').allTextContents()).toEqual(['task-graph', 'agent-codex']);
+
+  await browser.locator('.ke-list-section').first().getByRole('button', { name: /Knowledge explorer WorkItem/ }).click();
+  await inspector.locator('.ke-connection-list li').filter({ hasText: 'To · ProducedBy' }).getByRole('button', { name: /Codex sample agent/ }).click();
+  await expect(inspector.getByRole('heading', { name: 'Codex sample agent' })).toBeVisible();
 
   // The relationship browser exposes the edge record and its directed endpoints.
   await browser.getByRole('button', { name: /References Ontology reference → Tribal repository/ }).click();
