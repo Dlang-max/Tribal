@@ -31,6 +31,7 @@ ul { padding: 0; margin: 0; list-style: none; }
 .note-label { position: absolute; top: 42px; left: 50%; transform: translateX(-50%); text-align: center; width: 160px; font-size: 11px; line-height: 1.4; font-weight: 400; color: #c2bfcb; overflow-wrap: anywhere; pointer-events: none; }
 .react-flow__node-note.selected .note-label { color: #e3d5ff; }
 .note-node .react-flow__handle { top: 50%; left: 50%; right: auto; width: 1px; height: 1px; min-width: 0; min-height: 0; opacity: 0; transform: translate(-50%, -50%); pointer-events: none; }
+.graph-canvas .react-flow__edge-path { transition: stroke 220ms ease, stroke-width 220ms ease; }
 .react-flow__controls { box-shadow: none; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
 .react-flow__controls button { width: 44px; height: 44px; min-height: 44px; color: #dedbe6; background: #29282e; border-color: var(--border); border-radius: 0; padding: 13px; }
 .react-flow__controls button:hover { background: #36323f; }
