@@ -3,9 +3,11 @@
 import asyncio
 import json
 import os
+import signal
 from pathlib import Path
 import sys
 import tomllib
+import time
 
 CONFIG_PATH = "__SCENARIO_PATH__"
 
@@ -32,9 +34,12 @@ async def main():
     headers = dict(mcp_config.get("http_headers", {}))
     for key, variable in mcp_config.get("env_http_headers", {}).items():
         headers[key] = os.environ[variable]
+    prompt = sys.stdin.read()
+    schema_path = Path(arguments[arguments.index("--output-schema") + 1])
     marker = Path(scenario["marker"])
     record = {"argv": arguments, "cwd": os.getcwd(), "headers": headers,
               "url": mcp_config["url"], "pid": os.getpid(), "tools": [],
+              "prompt": prompt, "config": config, "schema": json.loads(schema_path.read_text()),
               "leaked_secrets": {name: value for name, value in os.environ.items()
                                  if value == "runtime-test-secret-must-not-reach-child"}}
     marker.write_text(json.dumps(record))
@@ -47,6 +52,22 @@ async def main():
     if scenario.get("mode") == "fail":
         print("controlled process failure", file=sys.stderr)
         sys.exit(23)
+    if scenario.get("mode") in {"descendant", "descendant_ignores_term", "descendant_holds_pipes"}:
+        ready_path = marker.with_name(marker.stem + "-descendant-ready")
+        descendant = os.fork()
+        if descendant == 0:
+            if scenario["mode"] in {"descendant_ignores_term", "descendant_holds_pipes"}:
+                signal.signal(signal.SIGTERM, signal.SIG_IGN)
+            if scenario["mode"] != "descendant_holds_pipes":
+                for descriptor in (0, 1, 2):
+                    os.close(descriptor)
+            ready_path.write_text(str(os.getpid()))
+            while True:
+                time.sleep(60)
+        record["descendant_pid"] = descendant
+        marker.write_text(json.dumps(record))
+        while not ready_path.exists():
+            await asyncio.sleep(0.01)
     from fastmcp import Client
     from fastmcp.client.transports import StreamableHttpTransport
 
