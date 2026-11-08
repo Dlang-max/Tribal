@@ -112,6 +112,18 @@ test('keeps graph, Markdown source and curator activity usable at 390px with red
   const code = preview.getByLabel('Code block');
   await expect.poll(() => code.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true);
   expect(await preview.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+  await table.evaluate((element) => { element.scrollLeft = 50; element.dataset.scrollWitness = 'same-table'; });
+  await code.evaluate((element) => { element.scrollLeft = 50; element.dataset.scrollWitness = 'same-code'; (element as HTMLElement).focus(); });
+  const beforeRefreshScroll = await preview.evaluate((element) => element.scrollTop);
+  const refreshed = page.waitForResponse('**/api/graph');
+  await emit(page, event({ type: 'graph_changed' }));
+  await refreshed;
+  await expect(table).toHaveAttribute('data-scroll-witness', 'same-table');
+  await expect(code).toHaveAttribute('data-scroll-witness', 'same-code');
+  await expect(table).toHaveJSProperty('scrollLeft', 50);
+  await expect(code).toHaveJSProperty('scrollLeft', 50);
+  await expect(code).toBeFocused();
+  await expect(preview).toHaveJSProperty('scrollTop', beforeRefreshScroll);
   await page.getByRole('button', { name: 'Source', exact: true }).click();
   await expect(page.getByLabel('Markdown source')).toContainText('# Repository guide');
   await expect(page.getByRole('region', { name: 'Curator activity' })).toBeVisible();
