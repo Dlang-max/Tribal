@@ -97,10 +97,10 @@ class CatalogTransaction:
             raise ValueError("request_id payload hash conflict")
         return copy.deepcopy(stored[1])
 
-    # Stage a replay result in the same transaction as manifest changes.
+    # Preserve the first replay result just as the production SQL transaction does.
     def remember_request_result(self, request_id, request_hash, result):
-        self.get_request_result(request_id, request_hash)
-        self.receipts[request_id] = (request_hash, copy.deepcopy(result))
+        if self.get_request_result(request_id, request_hash) is None:
+            self.receipts[request_id] = (request_hash, copy.deepcopy(result))
 
 
 class CatalogMemory:

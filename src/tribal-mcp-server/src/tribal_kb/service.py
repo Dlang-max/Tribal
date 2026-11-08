@@ -225,10 +225,7 @@ class KnowledgeBaseService:
                 else:
                     proposed[path] = change["markdown"]
             if not changes:
-                outcome = _result("unchanged", "No changes requested")
-                if request_id is not None:
-                    transaction.remember_request_result(request_id, request_hash, outcome)
-                return outcome, []
+                return _result("unchanged", "No changes requested"), []
             issues = self._validate(proposed)
             if issues:
                 return _result("invalid", "Proposed vault failed structural validation", issues=issues), []
@@ -260,7 +257,8 @@ class KnowledgeBaseService:
             outcome = _result("updated" if staged else "unchanged",
                               "Published validated notes" if staged else "Notes already match",
                               notes=[public for _, _, public in staged])
-            if request_id is not None:
+            # Only saved changes finalize here; the runtime records final no-change outcomes.
+            if staged and request_id is not None:
                 transaction.remember_request_result(request_id, request_hash, outcome)
             return outcome, [(note, text) for note, text, _ in staged]
 
