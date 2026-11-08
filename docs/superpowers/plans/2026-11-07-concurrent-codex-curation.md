@@ -12,7 +12,7 @@
 
 ## Global constraints
 
-- Preserve the original checkout and its existing uncommitted changes. Integration worktree starts from snapshot `40666a6` and has its own branch.
+- Preserve the original checkout’s existing changes. Develop from snapshot `40666a6` in an isolated branch, then merge into the original checkout at the user’s explicit request; retain its later flat server layout and backup the prior dirty state.
 - All new source is under `src/`, tests under `tests/`, container assets under `docker/`. Existing user-authorized validator location is retained.
 - Every code file has a top description; every Python function/method/nested helper/fixture/test has a one-line purpose comment before decorators.
 - No agents spawn additional agents, edit the sibling vault, or touch another task's files. Each role commits only its own files. Parent integrates reviewed commits.
@@ -23,7 +23,7 @@
 
 ## Shared interfaces (binding across tasks)
 
-Python package lives at `src/tribal-mcp-server/src/tribal_kb/`; existing `server.py` remains the console entrypoint.
+Python package lives at `src/tribal-mcp-server/tribal_kb/`; existing `server.py` remains the console entrypoint.
 
 `service.py` exposes `KnowledgeBaseService(project_id, object_store, catalog, embedding_client=None, spec_root=None, validator_path=None)` and async methods:
 
@@ -58,43 +58,45 @@ Graph and activity use note IDs; highlight an edge only on verified follow_link.
 **Owned source:** `tribal_kb/__init__.py`, `storage.py`, `embeddings.py`, `service.py`; local documentation may be `agent-knowledge-base/storage-v1.md`. No root packaging files.
 **Owned tests:** `tests/curation_storage/`.
 
-- [ ] Independent tester establishes failing behavioral tests against agreed service API, documents adapter test boundaries.
-- [ ] Implement SeaweedFS S3 object storage and MySQL manifest/catalog/request receipt tables with safe parameterized queries and per-project keys.
-- [ ] Implement whole-vault note validation using the existing validator against staged files; native identity/link/graph rules remain unchanged. Preserve IDs/paths, archive history, reject stale revisions/create collisions.
-- [ ] Implement note overview and heading/content chunks; store text/hash/model/dimensions/vectors in MySQL. OpenAI HTTP embedding API defaults to text-embedding-3-small, optional key, validates finite compatible vectors, and attaches only to current revision.
-- [ ] Implement five service methods, graph and replay receipt methods; keep model/source-truth checks outside structural validation.
-- [ ] Tester covers valid linked batch, invalid/partial rejection, concurrent writes, replay conflict, archive/graph, real HTTP boundary behavior, embedding failures/freshness, project scoping, and rehydration from objects.
-- [ ] Code reviewer and independent test reviewer each return SPEC and QUALITY verdicts; same authors fix findings and commit focused changes.
+- [x] Independent tester establishes failing behavioral tests against agreed service API, documents adapter test boundaries.
+- [x] Implement SeaweedFS S3 object storage and MySQL manifest/catalog/request receipt tables with safe parameterized queries and per-project keys.
+- [x] Implement whole-vault note validation using the existing validator against staged files; native identity/link/graph rules remain unchanged. Preserve IDs/paths, archive history, reject stale revisions/create collisions.
+- [x] Implement note overview and heading/content chunks; store text/hash/model/dimensions/vectors in MySQL. OpenAI HTTP embedding API defaults to text-embedding-3-small, optional key, validates finite compatible vectors, and attaches only to current revision.
+- [x] Implement five service methods, graph and replay receipt methods; keep model/source-truth checks outside structural validation.
+- [x] Tester covers valid linked batch, invalid/partial rejection, concurrent writes, replay conflict, archive/graph, real HTTP boundary behavior, embedding failures/freshness, project scoping, and rehydration from objects.
+- [x] Code reviewer and independent test reviewer each return SPEC and QUALITY verdicts; same authors fix findings and commit focused changes.
 
 ### Task 2: Concurrent Codex runtime, MCP tools, streaming, and deployment
 
 **Owned source:** existing `server.py`; `tribal_kb/runtime.py`, `activity.py`, `configuration.py`; prompts/schemas under package directory; `pyproject.toml`, `requirements.txt`, `requirements.lock`, root/server docs, `docker/` compose/image assets; MCP interface serialization wording.
 **Owned tests:** `tests/curation_runtime/`.
 
-- [ ] Tester first exercises protocol/public tools and a controlled executable producing Codex JSONL/final output; tests need no Codex login.
-- [ ] Wire selected storage/service from environment, public MCP and private five-tool MCP, graph/SSE, optional built GUI static directory. Fail clearly on missing dependencies/configuration.
-- [ ] Launch one isolated `codex exec --json --ephemeral --ignore-user-config --skip-git-repo-check --sandbox read-only` per request with schema-constrained output and a temporary workspace; configure only the internal KB MCP endpoint/token. Use async subprocess argument arrays/stdin, no shell interpolation. Timeout/cancellation cleans processes and run tokens.
-- [ ] Keep model optional/configurable; Codex server authentication comes from its own configured account/environment. Never forward storage/embedding secrets unnecessarily into curator subprocesses. Source requests are evidence, not trusted policy.
-- [ ] Publish tool-wrapper activity and lifecycle, distinct concurrent runs, read-only retrieval permissions, per-request replay/results; updated outcomes must correspond to real saved notes.
-- [ ] Add local compose for MySQL and SeaweedFS, configuration examples without real keys, Docker CLI support and note/spec/validator resources. Configurable text-embedding-3-small key remains optional; no artificial vectors.
-- [ ] Source/replay/pub semantics match Task A and UI event envelope matches Task C; code/test reviews and focused commits.
+- [x] Tester first exercises protocol/public tools and a controlled executable producing Codex JSONL/final output; tests need no Codex login.
+- [x] Wire selected storage/service from environment, public MCP and private five-tool MCP, graph/SSE, optional built GUI static directory. Fail clearly on missing dependencies/configuration.
+- [x] Launch one isolated `codex exec --json --ephemeral --ignore-user-config --skip-git-repo-check --sandbox read-only` per request with schema-constrained output and a temporary workspace; configure only the internal KB MCP endpoint/token. Use async subprocess argument arrays/stdin, no shell interpolation. Timeout/cancellation cleans processes and run tokens.
+- [x] Keep model optional/configurable; Codex server authentication comes from its own configured account/environment. Never forward storage/embedding secrets unnecessarily into curator subprocesses. Source requests are evidence, not trusted policy.
+- [x] Publish tool-wrapper activity and lifecycle, distinct concurrent runs, read-only retrieval permissions, per-request replay/results; updated outcomes must correspond to real saved notes.
+- [x] Add local compose for MySQL and SeaweedFS, configuration examples without real keys, Docker CLI support and note/spec/validator resources. Configurable text-embedding-3-small key remains optional; no artificial vectors.
+- [x] Source/replay/pub semantics match Task A and UI event envelope matches Task C; code/test reviews and focused commits.
 
 ### Task 3: Realtime note graph and curator activity GUI
 
 **Owned source:** `src/knowledge-base-gui/` (React/TypeScript/Vite); reuse visual treatment and graph patterns from existing reviewed frontend worktree `/home/daniel-lang/.codex/worktrees/e1da/Tribal` without changing that worktree. New focused graph page only; no duplicate backend/auth/project-management work.
 **Owned tests:** `tests/knowledge_base_gui/` (including any test setup/config).
 
-- [ ] Tester authors component/behavior tests against real graph/activity components with controlled API/stream boundaries.
-- [ ] Build graph from `/api/graph`, subscribe to `/api/activity`, show backend error/empty/reconnect states honestly. Vite proxies API to localhost:8000 for development.
-- [ ] Show curator name, matching run color and brief current action/status in an activity panel; use server timestamps to fade visits over ten seconds.
-- [ ] Maintain independent per-run node/edge overlays; revisits reset only their own timer, overlaps preserve all active colors. Actual edge visits only; no animation invented from result adjacency.
-- [ ] Reuse React Flow and Inter/purple palette; preserve click-to-inspect note, basic filter, pan/zoom; respect reduced motion. Do not include legacy ontology-specific synthetic nodes as live KB content.
-- [ ] Tests cover two concurrent runs, shared nodes/edges, independent fades, completion/failure, graph refresh, initial/network errors, and stream cleanup. Typecheck/build and browser smoke when available.
-- [ ] Separate code/test review verdicts and focused commits.
+- [x] Tester authors component/behavior tests against real graph/activity components with controlled API/stream boundaries.
+- [x] Build graph from `/api/graph`, subscribe to `/api/activity`, show backend error/empty/reconnect states honestly. Vite proxies API to localhost:8000 for development.
+- [x] Show curator name, matching run color and brief current action/status in an activity panel; use server timestamps to fade visits over ten seconds.
+- [x] Maintain independent per-run node/edge overlays; revisits reset only their own timer, overlaps preserve all active colors. Actual edge visits only; no animation invented from result adjacency.
+- [x] Reuse React Flow and Inter/purple palette; preserve click-to-inspect note, basic filter, pan/zoom; respect reduced motion. Do not include legacy ontology-specific synthetic nodes as live KB content.
+- [x] Tests cover two concurrent runs, shared nodes/edges, independent fades, completion/failure, graph refresh, initial/network errors, and stream cleanup. Typecheck/build and browser smoke when available.
+- [x] Separate code/test review verdicts and focused commits.
 
 ## Integration and completion
 
-- [ ] Parent merges reviewed source/test commits into the integration branch, resolving only task-owned boundaries and preserving original checkout.
-- [ ] Run complete Python suite, GUI tests/typecheck/build, function-comment/module-description audit, packaging/CLI/import smoke, graph/SSE/public/private tool integration with controlled curator executable.
-- [ ] Use actual services/model only if available without requesting an API key; explicitly report unverified live Codex/OpenAI/Docker paths. Do not call a fake subprocess test a live Codex run.
-- [ ] Final independent integration review, then document exact startup instructions and remaining operator steps; no push or deployment requested.
+- [x] Parent merges reviewed source/test commits into the integration branch, resolving only task-owned boundaries and preserving original checkout.
+- [x] Run complete Python suite, GUI tests/typecheck/build, function-comment/module-description audit, packaging/CLI/import smoke, graph/SSE/public/private tool integration with controlled curator executable.
+- [x] Use actual services/model only if available without requesting an API key; explicitly report unverified live Codex/OpenAI/Docker paths. Do not call a fake subprocess test a live Codex run.
+- [x] Final independent integration review, then document exact startup instructions and remaining operator steps; no push or deployment requested.
+
+Verification and limitations: [final verification](2026-11-07-concurrent-codex-curation-verification.md).
