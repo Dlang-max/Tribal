@@ -1,2 +1,8 @@
 fastmcp==4.1.6
 PyYAML==6.0.3
+fastapi==0.137.1
+uvicorn==0.46.0
+httpx==0.28.1
+boto3==1.43.126
+PyMySQL[rsa]==1.2.3
+jsonschema==4.26.0

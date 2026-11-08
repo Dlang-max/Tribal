@@ -1,0 +1,1 @@
+{"type":"object","properties":{"context":{"type":"string"},"sources":{"type":"array","items":{"type":"object","properties":{"path":{"type":"string"},"title":{"type":"string"}},"required":["path","title"],"additionalProperties":false}}},"required":["context","sources"],"additionalProperties":false}
