@@ -8,3 +8,10 @@ tests
 docs
 frontend
 node_modules
+**/node_modules
+**/dist
+.env*
+**/.env*
+.codex
+.vscode
+.superpowers

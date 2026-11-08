@@ -1,8 +1,9 @@
 # Tribal DigitalOcean demo host
 
 Prepared and verified on 2026-11-08 for `https://github.com/Dlang-max/Tribal`, branch
-`feat/kubernetes-project-mcp-demo`. This is a prepared host with a verified copy of
-local storage. The Tribal application and public HTTPS endpoint are not deployed.
+`feat/kubernetes-project-mcp-demo`. The app and React frontend now run over HTTPS with bearer-protected MCP;
+server model login remains pending. See [hosted deployment](hosted-tribal.md)
+for current status and the latest verified KB import.
 
 ## Host and access
 
@@ -136,18 +137,21 @@ proxy yet), and all checked backend ports filtered: 3306, 7333, 8000, 8080,
 8333, 8888, 9333, 18080, 18888, 19333 and 33060. Host listener inspection and
 container port bindings confirmed no storage publication.
 
-## Remaining application deployment
+## Current application deployment
 
-The requested hostname is `tribal-ub-hacking-2026.duckdns.org`. Live DNS checks
-on 2026-11-08 (local resolver and Cloudflare `1.1.1.1`) returned A record
-`157.245.218.183`; the AAAA check returned no address. DNS already targets this
-Droplet. An external HTTPS connection was refused, and SSH inspection confirmed
-only the two storage containers and no listener on ports 80/443 or application
-ports. The MCP backend and React frontend remain local: `/healthz` on localhost
-8000 returned OK for `tribal-demo`, and localhost 5173 returned HTTP 200.
+The app and React dashboard run at https://tribal-ub-hacking-2026.duckdns.org/.
+MCP is at `/mcp` and requires a bearer token. The dashboard and read APIs are
+public by explicit user choice. Caddy provides trusted HTTPS, persists certificates
+and blocks private curator paths. The app publishes no host port. Operator
+configuration and complete acceptance evidence are in [hosted-tribal.md](hosted-tribal.md).
 
-Prepare the authenticated public app and HTTPS configuration for the hostname
-above, and authenticate Codex on the server before exposing MCP. Existing local
-Codex/embedding credentials were deliberately excluded from the storage copy.
-Storage restore success does not establish a working hosted curator or MCP
-endpoint. No repository commit, push or merge was performed for this setup.
+The latest user-requested local KB port supersedes the initial snapshot above:
+12 notes, 57 revisions, 32 receipts, 119 chunks and 57 objects, all row/object
+hashes verified. The before-port backup and receipt are at
+`/opt/tribal/backups/before-local-kb-port-20261108T075102Z`.
+The saved local Codex `tribal-project` definition now targets the remote endpoint
+with bearer authentication. Current sessions need reconnect/restart to load it.
+
+Server Codex authentication remains pending the user's account Security setting
+and device sign-in. No model/embedding credentials were copied from the laptop;
+live hosted curator retrieval/publication is not yet verified.

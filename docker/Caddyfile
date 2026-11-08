@@ -1,0 +1,14 @@
+# Publish only the dashboard, its read APIs, health and bearer-authenticated MCP.
+{$TRIBAL_DOMAIN} {
+    @mcp_slash path /mcp/
+    @public path / /assets/* /api/graph /api/notes/* /api/activity /healthz /mcp /mcp/
+    handle @public {
+        rewrite @mcp_slash /mcp
+        reverse_proxy app:8000 {
+            flush_interval -1
+        }
+    }
+    handle {
+        respond "Not found" 404
+    }
+}

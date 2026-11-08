@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import os
 from pathlib import Path
 import sysconfig
@@ -31,6 +31,7 @@ class Settings:
     gui_directory: str | None = None
     spec_root: str | None = None
     validator_path: str | None = None
+    mcp_bearer_token: str | None = field(default=None, repr=False)
 
     # Read configuration without importing or contacting optional backend dependencies.
     @classmethod
@@ -58,6 +59,7 @@ class Settings:
             gui_directory=os.environ.get("TRIBAL_GUI_DIRECTORY") or None,
             spec_root=os.environ.get("TRIBAL_SPEC_ROOT") or None,
             validator_path=os.environ.get("TRIBAL_VALIDATOR_PATH") or None,
+            mcp_bearer_token=os.environ.get("TRIBAL_MCP_BEARER_TOKEN"),
         )
 
 

@@ -1,0 +1,40 @@
+# Serve the existing project over HTTPS while reusing its private storage network.
+name: tribal-app
+services:
+  app:
+    image: ${TRIBAL_IMAGE:?Set the reviewed application image}
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 30s
+    env_file:
+      - ${TRIBAL_STORAGE_ENV:-../storage/app.env}
+    environment:
+      TRIBAL_MCP_BEARER_TOKEN: ${TRIBAL_MCP_BEARER_TOKEN:?Set a private bearer token}
+      TRIBAL_INTERNAL_URL: http://127.0.0.1:8000/internal/mcp
+      TRIBAL_GUI_DIRECTORY: /app/gui
+      TRIBAL_CODEX_MODEL: ${TRIBAL_CODEX_MODEL:-}
+    volumes:
+      - codex-auth:/home/tribal/.codex
+    networks:
+      - default
+      - storage
+  caddy:
+    image: ${TRIBAL_CADDY_IMAGE:-caddy:2-alpine}
+    restart: unless-stopped
+    environment:
+      TRIBAL_DOMAIN: ${TRIBAL_DOMAIN:?Set the public hostname}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+networks:
+  storage:
+    external: true
+    name: tribal-storage_default
+volumes:
+  codex-auth:
+  caddy-data:
+  caddy-config:

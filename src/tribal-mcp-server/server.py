@@ -123,6 +123,7 @@ def create_app(service=None, curator=None, events=None, settings=None):
     from fastapi.responses import FileResponse, StreamingResponse
     from fastapi.staticfiles import StaticFiles
     from tribal_kb.activity import ActivityBus
+    from tribal_kb.authentication import MCPBearerTokenMiddleware
     from tribal_kb.runtime import CodexCurator
 
     events = events if events is not None else getattr(curator, "events", None) or ActivityBus()
@@ -218,7 +219,9 @@ def create_app(service=None, curator=None, events=None, settings=None):
         async def dashboard():
             return FileResponse(gui / "index.html")
 
-    app.mount("/", public_app)
+    app.mount("/", MCPBearerTokenMiddleware(
+        public_app, getattr(settings, "mcp_bearer_token", None),
+    ))
     return app
 
 

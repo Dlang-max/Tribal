@@ -61,3 +61,16 @@ and returns explicit disconnected errors. `create_app(service=..., curator=...,
 events=...)` supports controlled integration checks; the console entrypoint loads
 real configured adapters. Missing project configuration, resources, or backend
 dependencies fail explicitly. Embeddings are optional and never gate valid writes.
+
+### Shared bearer authentication for hosted MCP
+
+Set `TRIBAL_MCP_BEARER_TOKEN` to a private printable ASCII secret to require
+`Authorization: Bearer <secret>` on every public HTTP MCP request. Missing,
+incorrect, malformed and duplicate credentials return `401` before dispatch.
+An explicitly empty value is rejected at startup. When the variable is absent,
+local behavior remains unchanged. Dashboard/read APIs remain public by design;
+private curator run tokens are separate from this participant credential.
+
+The hosted Compose stack requires a nonempty token. See
+[`docs/hosted-tribal.md`](../../docs/hosted-tribal.md) for deployment and connection
+instructions. Never embed the token in the React build or a URL.
