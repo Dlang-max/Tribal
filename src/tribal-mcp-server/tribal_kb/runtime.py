@@ -315,6 +315,7 @@ class CodexCurator:
                 "-c", 'mcp_servers.tribal.http_headers={"x-tribal-run-token"=' + json.dumps(token) + "}",
                 "-c", "mcp_servers.tribal.enabled_tools=" + json.dumps(tools),
                 "-c", "mcp_servers.tribal.required=true",
+                "-c", 'mcp_servers.tribal.default_tools_approval_mode="approve"',
                 "-c", 'shell_environment_policy.inherit="none"',
                 "-c", 'approval_policy="never"',
                 "-c", "features.shell_tool=false", "-c", 'web_search="disabled"',
