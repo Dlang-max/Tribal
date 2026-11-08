@@ -68,10 +68,31 @@ describe('live knowledge explorer', () => {
     fireEvent.click(graphView().getByRole('button', { name: /Storage decision/ }));
     await flush();
     const reader = screen.getByRole('region', { name: 'Note contents' });
+    const preview = within(reader).getByLabelText('Markdown preview');
+    expect(within(preview).getByRole('heading', { level: 1, name: 'Storage decision' })).toBeVisible();
+    expect(within(preview).getByRole('heading', { level: 2, name: 'Summary' })).toBeVisible();
+    expect(within(preview).getByRole('table')).toBeVisible();
+    expect(within(preview).getAllByRole('list')).toHaveLength(3);
+    expect(within(preview).getByRole('checkbox', { checked: true })).toBeDisabled();
+    expect(within(preview).getByRole('link', { name: 'reference' })).toHaveAttribute('href', 'https://example.com/docs');
+    expect(within(preview).getByText('Unsafe link').closest('a')).not.toHaveAttribute('href', expect.stringMatching(/^javascript:/));
+    expect(preview.querySelector('script')).toBeNull();
+    expect(preview.querySelector('blockquote')).toHaveTextContent('Keep the knowledge connected.');
+    expect(preview.querySelector('pre code')).toHaveTextContent('[[guides/repository]]');
+    expect(within(preview).queryByText('status: current')).not.toBeInTheDocument();
+    expect(within(preview).getAllByRole('link', { name: 'Repository details' })).toHaveLength(1);
+    fireEvent.click(within(reader).getByRole('button', { name: 'Source', exact: true }));
     expect(within(reader).getByLabelText('Markdown source').textContent).toBe(noteContent().markdown);
+    expect(within(reader).getByRole('button', { name: 'Source', exact: true })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(within(reader).getByRole('button', { name: 'Preview', exact: true }));
     expect(network.fetch).toHaveBeenCalledWith('/api/notes/note-a', expect.objectContaining({ signal: expect.any(AbortSignal) }));
     expect(screen.getByRole('region', { name: 'Curator activity' })).toBeVisible();
-    fireEvent.click(within(reader).getByRole('button', { name: /Back to graph/ }));
+    fireEvent.click(within(reader).getByRole('link', { name: 'Repository details' }));
+    await flush();
+    expect(screen.getByLabelText('Markdown preview')).toHaveTextContent('Repository guide');
+    expect(screen.queryByLabelText('Markdown source')).not.toBeInTheDocument();
+    expect(network.fetch).toHaveBeenCalledWith('/api/notes/note-b', expect.objectContaining({ signal: expect.any(AbortSignal) }));
+    fireEvent.click(screen.getByRole('button', { name: /Back to graph/ }));
     expect(screen.queryByRole('region', { name: 'Note contents' })).not.toBeInTheDocument();
     expect(graphView().getByRole('button', { name: /Storage decision/ })).toBeVisible();
   });
@@ -99,7 +120,7 @@ describe('live knowledge explorer', () => {
     expect(screen.getByText(/Note request failed/)).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Retry note' }));
     await flush();
-    expect(screen.getByLabelText('Markdown source')).toHaveTextContent('Actual Markdown body');
+    expect(screen.getByLabelText('Markdown preview')).toHaveTextContent('Actual Markdown body');
   });
 
   it('refreshes after graph changes and reconnect, while keeping the snapshot on refresh failure', async () => {
@@ -168,8 +189,8 @@ describe('live knowledge explorer', () => {
     await flush();
     finish(Response.json(noteContent()));
     await flush();
-    expect(screen.getByLabelText('Markdown source')).toHaveTextContent('# Repository guide');
-    expect(screen.getByLabelText('Markdown source')).not.toHaveTextContent('# Storage decision');
+    expect(within(screen.getByLabelText('Markdown preview')).getByRole('heading', { level: 1, name: 'Repository guide' })).toBeVisible();
+    expect(within(screen.getByLabelText('Markdown preview')).queryByRole('heading', { level: 1, name: 'Storage decision' })).not.toBeInTheDocument();
     second.unmount();
   });
 

@@ -16,6 +16,6 @@ src/knowledge-base-gui/node_modules/.bin/playwright install chromium
 src/knowledge-base-gui/node_modules/.bin/playwright test --config tests/knowledge_base_gui/playwright.config.ts
 ```
 
-An existing Chromium executable can be selected with `TRIBAL_CHROMIUM_EXECUTABLE`. The browser tests start the Vite development server on port 4187 and control `/api/graph`, `/api/notes/…`, the EventSource boundary, and time; no backend is needed. They verify rendered SVG path geometry, independent concurrent trails, note source loading, Back to graph with preserved zoom/focus, and 390px layout with reduced motion enabled.
+An existing Chromium executable can be selected with `TRIBAL_CHROMIUM_EXECUTABLE`. The browser tests start the Vite development server on port 4187 and control `/api/graph`, `/api/notes/…`, the EventSource boundary, and time; no backend is needed. They verify rendered SVG path geometry, independent concurrent trails, rendered preview/source loading, safe semantic Markdown, internal wikilinks, contained mobile overflow, Back to graph with preserved zoom/focus, and 390px layout with reduced motion enabled.
 
 `TRIBAL_GUI_SOURCE_DIR` optionally points both configurations at a different GUI source package for isolated source/test worktrees. Otherwise all imports and tools resolve from this checkout's source package and its local dependency install. Tests remain outside the source package in accordance with repository guidance.

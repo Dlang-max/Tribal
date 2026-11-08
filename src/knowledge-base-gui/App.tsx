@@ -29,7 +29,7 @@ export function App() {
             <button type="button" onClick={refresh} disabled={loading}>{loading && graph ? 'Refreshing…' : 'Refresh graph'}</button></div>
         </div>
       </div>
-      {selected && <NoteReader key={selected.id} note={selected} onClose={closeNote} />}
+      {selected && <NoteReader key={selected.id} note={selected} notes={graph?.nodes ?? []} onSelect={setSelectedId} onClose={closeNote} />}
     </div>
     <ActivityPanel activity={activity} />
   </main>;
