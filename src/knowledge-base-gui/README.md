@@ -1,5 +1,7 @@
 # Live knowledge explorer
 
+Dots grow with the number of distinct connected notes, counting incoming and outgoing links together. Reciprocal links count once; growth is capped to keep the graph readable. Curator rings follow the dot size.
+
 Run the project server on `127.0.0.1:8000`, then from this directory:
 
 ```sh

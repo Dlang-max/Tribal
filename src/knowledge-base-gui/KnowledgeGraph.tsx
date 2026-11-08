@@ -7,19 +7,20 @@ import { activeVisits, emptyActivityState } from './activity';
 import { layoutGraph } from './graphLayout';
 import type { ActivityState, GraphNode, GraphSnapshot } from './types';
 
-type NoteData = { note: GraphNode };
+type NoteData = { note: GraphNode; connections: number };
 const VisitContext = createContext({ activity: emptyActivityState(), now: 0 });
 
 function NoteNode({ id, data }: NodeProps<Node<NoteData>>) {
   const { activity, now } = useContext(VisitContext);
   const visits = activeVisits(activity, 'nodes', id, now);
-  return <div className="note-node" title={data.note.title}>
+  const radius = Math.min(14, 5 + 2 * Math.sqrt(data.connections));
+  return <div className="note-node" title={`${data.note.title} · ${data.connections} connected notes`}>
     <Handle type="target" position={Position.Left} />
     <svg className="node-rings" viewBox="-22 -22 44 44" aria-hidden="true" overflow="visible">
-      {visits.map((visit, index) => <circle key={visit.run_id} cx="0" cy="0" r={9 + index * 4} fill="none" stroke={visit.color} strokeWidth="2"
+      {visits.map((visit, index) => <circle key={visit.run_id} cx="0" cy="0" r={radius + 4 + index * 4} fill="none" stroke={visit.color} strokeWidth="2"
         data-testid="node-visit" data-target-id={id} data-run-id={visit.run_id} data-color={visit.color} data-opacity={visit.opacity}
         style={{ opacity: visit.opacity }}><title>{visit.name} visited this note</title></circle>)}
-      <circle className="note-dot" cx="0" cy="0" r="5" />
+      <circle className="note-dot" cx="0" cy="0" r={radius} />
     </svg>
     <span className="note-label">{data.note.title}</span>
     <Handle type="source" position={Position.Right} />
@@ -61,14 +62,23 @@ export function KnowledgeGraph({ graph, activity, now, onSelect, selectedId }: K
   const [hoveredId, setHoveredId] = useState<string>();
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<NoteData>>([]);
   const positions = useMemo(() => layoutGraph(graph), [graph]);
+  const connections = useMemo(() => {
+    const neighbors = new Map(graph.nodes.map((note) => [note.id, new Set<string>()]));
+    for (const edge of graph.edges) {
+      if (edge.source === edge.target || !neighbors.has(edge.source) || !neighbors.has(edge.target)) continue;
+      neighbors.get(edge.source)!.add(edge.target);
+      neighbors.get(edge.target)!.add(edge.source);
+    }
+    return new Map([...neighbors].map(([id, linked]) => [id, linked.size]));
+  }, [graph]);
   useEffect(() => {
     setNodes((current) => {
       const previous = new Map(current.map((node) => [node.id, node]));
       return graph.nodes.map((note) => ({ ...previous.get(note.id), id: note.id, type: 'note',
-        position: positions.get(note.id) ?? { x: 0, y: 0 }, data: { note }, selected: selectedId === note.id,
-        ariaRole: 'button', ariaLabel: `${note.title}, ${note.type} note. Open note`, style: { width: 44, height: 44 } }));
+        position: positions.get(note.id) ?? { x: 0, y: 0 }, data: { note, connections: connections.get(note.id) ?? 0 }, selected: selectedId === note.id,
+        ariaRole: 'button', ariaLabel: `${note.title}, ${note.type} note. ${connections.get(note.id) ?? 0} connected notes. Open note`, style: { width: 44, height: 44 } }));
     });
-  }, [graph, positions, selectedId, setNodes]);
+  }, [graph, positions, connections, selectedId, setNodes]);
   const edges: Edge[] = graph.edges.map((edge) => ({ ...edge, type: 'curator', style: { stroke: edge.source === hoveredId ? '#b49ae8' : '#62616a', strokeWidth: edge.source === hoveredId ? 3.4 : 1 } }));
   return <VisitContext.Provider value={{ activity, now }}><section className="graph-panel" aria-label="Interactive knowledge graph"
     onKeyDownCapture={(event) => {
