@@ -24,8 +24,8 @@ The server listens only on localhost. It has no authentication; use it only in a
 trusted environment. One running instance represents one project; project selection
 and multi-user isolation are not implemented.
 
-The source remains at `Tribal/src/tribal-mcp-server/src/server.py`. It can also be
-started directly with `.venv/bin/python src/tribal-mcp-server/src/server.py`.
+The source lives at `Tribal/src/tribal-mcp-server/server.py`. It can also be
+started directly with `.venv/bin/python src/tribal-mcp-server/server.py`.
 `HOST` overrides the default bind address. Container startup and connection
 steps are documented in [Connect Codex to Tribal](../../docs/connecting-codex-to-tribal.md).
 

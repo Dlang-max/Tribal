@@ -11,7 +11,7 @@ python3.12 -m venv .venv
 .venv/bin/tribal-mcp-server
 ```
 
-Alternatively, run `.venv/bin/python src/tribal-mcp-server/src/server.py` after
+Alternatively, run `.venv/bin/python src/tribal-mcp-server/server.py` after
 installing dependencies. The HTTP MCP endpoint is `http://127.0.0.1:8000/mcp`.
 
 In another terminal:
