@@ -39,6 +39,8 @@ class RunState:
     reads: dict[str, dict] = field(default_factory=dict)
     receipt: dict | None = None
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+    tool_tasks: set[asyncio.Task] = field(default_factory=set)
+    active: bool = True
 
 
 class RunPermissions(Middleware):
@@ -57,7 +59,14 @@ class RunPermissions(Middleware):
         run = self.curator.current_run()
         if context.message.name == "apply_changes" and not run.writable:
             raise ToolError("This curator run is read-only")
-        return await call_next(context)
+        task = asyncio.current_task()
+        run.tool_tasks.add(task)
+        self.curator._tool_tasks.add(task)
+        try:
+            return await call_next(context)
+        finally:
+            run.tool_tasks.discard(task)
+            self.curator._tool_tasks.discard(task)
 
 
 class CodexCurator:
@@ -82,6 +91,7 @@ class CodexCurator:
         self._request_locks: dict[str, asyncio.Lock] = {}
         self._request_users: dict[str, int] = {}
         self._active_tasks: set[asyncio.Task] = set()
+        self._tool_tasks: set[asyncio.Task] = set()
         self.internal_server = self._create_internal_server()
 
     # Cancel and reap active runs before the HTTP endpoint stops accepting tools.
@@ -90,6 +100,24 @@ class CodexCurator:
         for task in tasks:
             task.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)
+        await self._cancel_tool_tasks(self._tool_tasks)
+
+    # Revoke transport and tool permissions without waiting for storage or tool locks.
+    def _revoke_run(self, token: str, run: RunState) -> None:
+        run.active = False
+        self.runs.pop(token, None)
+
+    # Cancel private executions without indefinitely waiting for cancellation-resistant I/O.
+    async def _cancel_tool_tasks(self, tasks: set[asyncio.Task]) -> bool:
+        pending = {task for task in tasks if not task.done()}
+        for task in pending:
+            task.cancel()
+        if pending:
+            done, _ = await asyncio.wait(pending, timeout=0.25)
+            for task in done:
+                if not task.cancelled():
+                    task.exception()
+        return bool(pending)
 
     # Resolve only a currently active per-run HTTP token.
     def current_run(self) -> RunState:
@@ -102,6 +130,8 @@ class CodexCurator:
     # Publish a consistent activity envelope without private model reasoning.
     async def emit(self, run: RunState, kind: str, message: str, *,
                    status: str = "working", node_ids=None, edge_ids=None) -> None:
+        if not run.active and kind in {"activity", "graph_changed"}:
+            return
         await self.events.publish({
             "type": kind, "run_id": run.run_id, "name": run.name, "color": run.color,
             "message": message, "status": status,
@@ -225,28 +255,29 @@ class CodexCurator:
                        kind == "update", request_id, request_hash)
         token = secrets.token_urlsafe(32)
         self.runs[token] = run
-        await self.emit(run, "run_started", "Reviewing knowledge update" if run.writable
-                        else "Gathering task context")
         try:
+            await self.emit(run, "run_started", "Reviewing knowledge update" if run.writable
+                            else "Gathering task context")
             with tempfile.TemporaryDirectory(prefix="tribal-curator-") as workspace:
                 result = await self._execute(run, token, kind, payload, Path(workspace))
-                # Wait for in-flight tools before sealing receipts and revoking the token.
-                async with run.lock:
-                    self.runs.pop(token, None)
-                    self._check_receipts(run, result)
+                self._revoke_run(token, run)
+                if await self._cancel_tool_tasks(run.tool_tasks):
+                    # A blocking write may still commit; retry reconciles its durable receipt.
+                    raise RuntimeError("Curator exited with unfinished knowledge operations; retry the same request ID")
+                self._check_receipts(run, result)
                 await self.emit(run, "run_finished", "Knowledge update complete" if run.writable
                                 else "Context ready", status="done")
                 return result
         except BaseException as error:
-            async with run.lock:
-                self.runs.pop(token, None)
+            self._revoke_run(token, run)
+            await self._cancel_tool_tasks(run.tool_tasks)
             await self.emit(run, "run_failed", "Curator cancelled" if isinstance(error, asyncio.CancelledError)
                             else f"Curator failed: {type(error).__name__}", status="failed")
             if isinstance(error, asyncio.CancelledError):
                 raise
             raise ToolError(f"Curator failed: {error}") from error
         finally:
-            self.runs.pop(token, None)
+            self._revoke_run(token, run)
             self._active_tasks.discard(task)
 
     # Accept context citations and update claims only when real tool receipts support them.
@@ -326,6 +357,7 @@ class CodexCurator:
                 jsonschema.validate(result, json.loads(schema_path.read_text()))
                 return result
         finally:
+            self._revoke_run(token, run)
             await self._stop_process(process)
 
     # Drain process pipes without retaining unlimited output or exposing reasoning.
@@ -349,15 +381,18 @@ class CodexCurator:
             raise ValueError("Codex returned no final structured result")
         return final
 
-    # Terminate the process group and reap the child after completion or cancellation.
+    # Signal the owned group even after its leader exits, and separately reap the leader.
     async def _stop_process(self, process) -> None:
-        if process.returncode is not None:
-            return
-        with suppress(ProcessLookupError):
-            os.killpg(process.pid, signal.SIGTERM)
         try:
-            await asyncio.wait_for(process.wait(), timeout=2)
-        except asyncio.TimeoutError:
+            with suppress(ProcessLookupError):
+                os.killpg(process.pid, signal.SIGTERM)
+            try:
+                await asyncio.wait_for(process.wait(), timeout=2)
+            except asyncio.TimeoutError:
+                pass
+        finally:
+            # Leader exit does not prove that its descendants have stopped or closed pipes.
             with suppress(ProcessLookupError):
                 os.killpg(process.pid, signal.SIGKILL)
-            await process.wait()
+        if process.returncode is None:
+            await asyncio.wait_for(process.wait(), timeout=2)
