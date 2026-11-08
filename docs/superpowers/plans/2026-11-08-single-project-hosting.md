@@ -28,5 +28,5 @@ Process health alone does not prove live curator/model/storage operation.
 - [x] Add optional bearer settings and public MCP transport middleware; run existing backend checks and manual auth requests.
 - [x] Package React using its lockfile, add hosted Compose/Caddy config, build filtered source and run existing frontend checks.
 - [x] Transfer image/config privately and start app/Caddy against existing stores; verify TLS/routes.
-- [ ] Complete fresh server Codex login after the account Security setting is enabled.
-- [ ] Exercise real hosted discovery/seed/update/readback/replay and restart persistence; document actual results and update Tribal KB.
+- [x] Complete fresh server Codex login after the account Security setting is enabled.
+- [x] Exercise real hosted discovery/seed/update/readback/replay and restart persistence; document actual results and update Tribal KB.

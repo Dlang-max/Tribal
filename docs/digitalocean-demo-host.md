@@ -2,7 +2,7 @@
 
 Prepared and verified on 2026-11-08 for `https://github.com/Dlang-max/Tribal`, branch
 `feat/kubernetes-project-mcp-demo`. The app and React frontend now run over HTTPS with bearer-protected MCP;
-server model login remains pending. See [hosted deployment](hosted-tribal.md)
+server model login and live curator read/write acceptance are verified. See [hosted deployment](hosted-tribal.md)
 for current status and the latest verified KB import.
 
 ## Host and access
@@ -152,6 +152,7 @@ hashes verified. The before-port backup and receipt are at
 The saved local Codex `tribal-project` definition now targets the remote endpoint
 with bearer authentication. Current sessions need reconnect/restart to load it.
 
-Server Codex authentication remains pending the user's account Security setting
-and device sign-in. No model/embedding credentials were copied from the laptop;
-live hosted curator retrieval/publication is not yet verified.
+Server Codex authentication is complete through a fresh device sign-in. Real
+hosted retrieval, publication, readback, identical-ID replay and persistence
+through app restart succeeded. No model/embedding credentials were copied from
+the laptop; embeddings remain optional and unverified.

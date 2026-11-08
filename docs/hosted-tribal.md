@@ -115,12 +115,43 @@ retained in the remote backup directory. The app restarted successfully; the
 public API and real browser both show 12 notes. Local services/data were preserved.
 This remains a point-in-time port, not continuous replication.
 
-### Pending model authentication
+### Server model authentication
 
-Server Codex login is not complete. The user must enable device-code sign-in in
-ChatGPT Security Settings and complete a fresh server device login. The setting
-is not exposed to the available tools. Earlier login processes were stopped by
-application restarts; previous device codes should not be reused. No laptop model
-credentials were copied. Live hosted seed/update/readback/replay remain unverified
-until server model login succeeds. Process health, TLS and tool discovery do not
-establish model execution. No commit or push was performed.
+The user completed a fresh server device sign-in. The CLI confirmed `Successfully
+logged in` and `Logged in using ChatGPT`. `/home/tribal/.codex/auth.json` is mode
+0600, owned by runtime UID 10001, and persisted in the server's Codex volume.
+No laptop model credentials were copied. Live HTTPS MCP retrieval, validated
+publication, note readback and identical-ID replay succeeded. After restarting
+the app, login remained valid, published Markdown hashes and replay receipts
+were unchanged, and another real model-backed retrieval succeeded.
+
+The acceptance update ID is `hosted-runtime-auth-recovery-20261108`. It updated
+the runtime guide (revision 10), hosting decision (revision 17) and project note
+(revision 12). A private machine-readable acceptance receipt is retained at
+`/opt/tribal/app/runtime-recovery-acceptance.json`. Optional embeddings remain
+unconfigured; no embedding-provider verification is claimed.
+
+### Runtime error diagnosis — 2026-11-08
+
+An actual remote `seed_agent_context` call reproduced the MCP tool error:
+`Curator failed: codex exited with status 1; check server Codex login/configuration`.
+The running application container reported `Not logged in`; its configured
+`/home/tribal/.codex/auth.json` was absent and `CODEX_API_KEY` was unset.
+A bounded direct `codex exec` diagnostic returned exit 1 after OpenAI Responses
+WebSocket/HTTPS requests returned `401 Unauthorized: Missing bearer or basic
+authentication in header`. The callback URL is correct and internal MCP
+initialization reached HTTP 200; the public MCP transport/bearer is working.
+The diagnosed failure is missing server-side model authentication.
+
+A fresh device login was started in the running application container. Completing
+the ChatGPT Security setting and browser device sign-in is required; the MCP
+participant token does not supply OpenAI model credentials. No storage changes,
+source patch, authentication bypass or laptop-credential transfer was used in
+this diagnosis. Verify login status and a real hosted curator call after sign-in.
+
+Resolution: completing the user's server device sign-in fixed the reproduced
+failure. The same remote read succeeded, an actual update published three notes,
+and note hashes plus the exact receipt survived an app restart. A second real
+retrieval succeeded after restart. Verification waits for HTTP readiness because
+Caddy can briefly return 502 while the restarted backend initializes. No
+application source change was required to resolve this missing-login failure.
