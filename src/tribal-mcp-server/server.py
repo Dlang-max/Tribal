@@ -119,7 +119,7 @@ class PrivateRunTokenMiddleware:
 
 # Compose the local MCP endpoints and browser APIs with injectable real service boundaries.
 def create_app(service=None, curator=None, events=None, settings=None):
-    from fastapi import FastAPI
+    from fastapi import FastAPI, HTTPException
     from fastapi.responses import FileResponse, StreamingResponse
     from fastapi.staticfiles import StaticFiles
     from tribal_kb.activity import ActivityBus
@@ -175,6 +175,14 @@ def create_app(service=None, curator=None, events=None, settings=None):
     @app.get("/api/graph")
     async def graph():
         return await service.graph()
+
+    # Read a published note by stable ID for the graph viewer's file reader.
+    @app.get("/api/notes/{note_id:path}")
+    async def note_contents(note_id: str):
+        try:
+            return await service.read_note(note_id)
+        except KeyError as error:
+            raise HTTPException(status_code=404, detail="Note not found") from error
 
     # Broadcast default SSE message events with periodic keepalive comments.
     @app.get("/api/activity")

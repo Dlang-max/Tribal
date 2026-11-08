@@ -17,6 +17,7 @@ package. After installation and configuration, start it directly with
 | `/mcp` | Public `seed_agent_context` and `update_knowledge_base` |
 | `/internal/mcp` | Active run-token-scoped internal tools |
 | `/api/graph` | Current project note/link graph |
+| `/api/notes/{note_id}` | Published Markdown and metadata for the graph's note reader |
 | `/api/activity` | Broadcast SSE default messages and comment heartbeats |
 | `/healthz` | Process health; does not certify Codex login or storage availability |
 | `/` | Optional built dashboard from `TRIBAL_GUI_DIRECTORY` |
