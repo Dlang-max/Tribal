@@ -368,7 +368,7 @@ async def test_graph_ignores_links_in_code_and_comments(make_service, changes):
     assert {link["target"] for link in loaded["links"]} == {"repository-note-demo", "guide-note-demo"}
 
 
-# Avoid extra history and retain the terminal receipt when published bytes already match.
+# Avoid extra history or a premature terminal receipt when published bytes already match.
 @pytest.mark.asyncio
 async def test_identical_content_update_is_unchanged_without_new_objects(make_service, changes, documents):
     service, objects, catalog = make_service()
@@ -381,7 +381,7 @@ async def test_identical_content_update_is_unchanged_without_new_objects(make_se
     assert result["notes"] == []
     assert len(objects.objects) == 11
     assert len(catalog.history) == 11
-    assert await service.get_request_result("already-matches", "same-content") == result
+    assert await service.get_request_result("already-matches", "same-content") is None
 
 
 # Report path ancestor collisions as invalid proposals instead of leaking filesystem errors.
