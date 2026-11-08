@@ -76,7 +76,7 @@ export function KnowledgeGraph({ graph, activity, now, onSelect, selectedId, que
   return <VisitContext.Provider value={{ activity, now }}><section className="graph-panel panel" aria-label="Interactive knowledge graph">
     <div className="graph-caption"><span>{nodes.length} notes · {edges.length} links</span><span>Drag to pan · scroll to zoom</span></div>
     <div className="graph-canvas"><ReactFlow nodes={nodes} edges={edges} onNodesChange={onNodesChange} nodeTypes={nodeTypes} edgeTypes={edgeTypes}
-      fitView fitViewOptions={{ padding: 0.3 }} nodesDraggable={false} nodesConnectable={false} edgesReconnectable={false}
+      fitView fitViewOptions={{ padding: 0.3 }} nodesDraggable={false} nodesConnectable={false} edgesReconnectable={false} deleteKeyCode={null}
       onNodeClick={(_, node) => onSelect(node.id)} minZoom={0.2} maxZoom={2} colorMode="dark">
       <Background color="#59436c" gap={24} /><Controls showInteractive={false} />
     </ReactFlow>{nodes.length === 0 && <p className="graph-empty">{graph.nodes.length === 0 ? 'The knowledge base has no notes yet.' : 'No notes match these filters.'}</p>}</div>
