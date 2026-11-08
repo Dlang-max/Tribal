@@ -1,5 +1,5 @@
 // Validate the real graph and curator activity responses at the browser boundary.
-import type { ActivityEvent, GraphSnapshot } from './types';
+import type { ActivityEvent, GraphSnapshot, NoteContent } from './types';
 
 function record(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -43,4 +43,16 @@ export async function fetchGraph(signal?: AbortSignal): Promise<GraphSnapshot> {
     throw new Error('The server returned inconsistent graph identifiers.');
   }
   return graph;
+}
+
+export async function fetchNote(noteId: string, signal?: AbortSignal): Promise<NoteContent> {
+  const response = await fetch(`/api/notes/${encodeURIComponent(noteId)}`, { signal });
+  if (!response.ok) throw new Error(response.status === 404 ? 'This note is no longer available.' : `Note request failed (${response.status}).`);
+  const value: unknown = await response.json();
+  if (!record(value) || value.id !== noteId || !['id', 'title', 'type', 'path'].every((key) => text(value[key]))
+    || typeof value.markdown !== 'string' || !Number.isInteger(value.revision) || Number(value.revision) < 1
+    || !Array.isArray(value.links) || !value.links.every((link) => record(link) && ['id', 'source', 'target'].every((key) => text(link[key])))) {
+    throw new Error('The server returned invalid note contents.');
+  }
+  return value as unknown as NoteContent;
 }

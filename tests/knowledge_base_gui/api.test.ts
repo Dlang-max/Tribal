@@ -1,7 +1,7 @@
 // Check API validation at the real HTTP/stream parsing boundary.
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fetchGraph, parseActivityEvent } from '@gui/api';
-import { event, graph } from './fixtures';
+import { fetchGraph, fetchNote, parseActivityEvent } from '@gui/api';
+import { event, graph, noteContent } from './fixtures';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -10,6 +10,13 @@ describe('live graph API boundary', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(Response.json(graph)).mockResolvedValueOnce(new Response('Unavailable', { status: 503 })));
     expect(await fetchGraph()).toEqual(graph);
     await expect(fetchGraph()).rejects.toThrow();
+    const encoded = { ...noteContent(), id: 'Projects/Tribal.md' };
+    const fetch = vi.fn().mockResolvedValueOnce(Response.json(encoded)).mockResolvedValueOnce(new Response('', { status: 404 })).mockResolvedValueOnce(Response.json({ ...encoded, markdown: 42 }));
+    vi.stubGlobal('fetch', fetch);
+    expect(await fetchNote(encoded.id)).toEqual(encoded);
+    expect(fetch).toHaveBeenCalledWith('/api/notes/Projects%2FTribal.md', expect.any(Object));
+    await expect(fetchNote(encoded.id)).rejects.toThrow(/no longer available/);
+    await expect(fetchNote(encoded.id)).rejects.toThrow(/invalid note contents/);
   });
 
   it.each([

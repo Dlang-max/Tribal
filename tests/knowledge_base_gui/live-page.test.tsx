@@ -2,10 +2,10 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import App from '@gui/App';
-import { event, graph, START } from './fixtures';
+import { event, graph, noteContent, START } from './fixtures';
 import { ControlledEventSource, flush, installNetwork, stream } from './network-boundary';
 
-const browser = () => within(screen.getByRole('complementary', { name: 'Note browser' }));
+const graphView = () => within(screen.getByRole('region', { name: 'Interactive knowledge graph' }));
 const visits = (kind: 'node' | 'edge', id: string) => screen.queryAllByTestId(`${kind}-visit`).filter((visit) => visit.dataset.targetId === id);
 
 beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(START); });
@@ -59,28 +59,29 @@ describe('live knowledge explorer', () => {
     expect(screen.getByText('Curator exited')).toBeVisible();
   });
 
-  it('filters real notes and inspects the selected note path and linked neighbor', async () => {
-    installNetwork();
+  it('opens actual Markdown from a dot and returns to the graph while activity stays visible', async () => {
+    const network = installNetwork();
     render(<App />);
     await flush();
-    fireEvent.change(screen.getByRole('searchbox', { name: 'Search notes' }), { target: { value: 'Storage' } });
-    const select = browser().getByRole('button', { name: /Storage decision/ });
-    fireEvent.click(select);
-    const details = screen.getByRole('region', { name: 'Note details' });
-    expect(within(details).getByText('decisions/storage.md')).toBeVisible();
-    expect(within(details).getByRole('button', { name: /Repository guide/ })).toBeVisible();
-    fireEvent.change(screen.getByRole('searchbox', { name: 'Search notes' }), { target: { value: '' } });
-    fireEvent.change(screen.getByRole('combobox', { name: 'Note type' }), { target: { value: 'finding' } });
-    expect(browser().getByRole('button', { name: /Published finding/ })).toBeVisible();
-    expect(browser().queryByRole('button', { name: /Storage decision/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
+    expect(screen.queryByRole('complementary', { name: 'Note browser' })).not.toBeInTheDocument();
+    fireEvent.click(graphView().getByRole('button', { name: /Storage decision/ }));
+    await flush();
+    const reader = screen.getByRole('region', { name: 'Note contents' });
+    expect(within(reader).getByLabelText('Markdown source').textContent).toBe(noteContent().markdown);
+    expect(network.fetch).toHaveBeenCalledWith('/api/notes/note-a', expect.objectContaining({ signal: expect.any(AbortSignal) }));
+    expect(screen.getByRole('region', { name: 'Curator activity' })).toBeVisible();
+    fireEvent.click(within(reader).getByRole('button', { name: /Back to graph/ }));
+    expect(screen.queryByRole('region', { name: 'Note contents' })).not.toBeInTheDocument();
+    expect(graphView().getByRole('button', { name: /Storage decision/ })).toBeVisible();
   });
 
   it('reports an honestly empty graph', async () => {
     installNetwork({ project_id: 'empty-project', nodes: [], edges: [] });
     render(<App />);
     await flush();
-    expect(browser().getByText(/no notes/i)).toBeVisible();
-    expect(browser().queryByRole('button', { name: /Storage decision/ })).not.toBeInTheDocument();
+    expect(graphView().getByText(/no notes/i)).toBeVisible();
+    expect(graphView().queryByRole('button', { name: /Storage decision/ })).not.toBeInTheDocument();
   });
 
   it('reports initial network failure and recovers through the refresh control', async () => {
@@ -91,7 +92,14 @@ describe('live knowledge explorer', () => {
     expect(screen.getByText(/Graph server unreachable/)).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Refresh graph' }));
     await flush();
-    expect(browser().getByRole('button', { name: /Storage decision/ })).toBeVisible();
+    expect(graphView().getByRole('button', { name: /Storage decision/ })).toBeVisible();
+    network.fetch.mockResolvedValueOnce(new Response('Unavailable', { status: 503 }));
+    fireEvent.click(graphView().getByRole('button', { name: /Storage decision/ }));
+    await flush();
+    expect(screen.getByText(/Note request failed/)).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry note' }));
+    await flush();
+    expect(screen.getByLabelText('Markdown source')).toHaveTextContent('Actual Markdown body');
   });
 
   it('refreshes after graph changes and reconnect, while keeping the snapshot on refresh failure', async () => {
@@ -101,18 +109,18 @@ describe('live knowledge explorer', () => {
     network.fetch.mockResolvedValueOnce(Response.json({ ...graph, nodes: [...graph.nodes, { id: 'note-new', title: 'Newly published note', type: 'guide', path: 'guides/new.md' }] }));
     act(() => stream().emit(event({ type: 'graph_changed', node_ids: [] })));
     await flush();
-    expect(browser().getByRole('button', { name: /Newly published note/ })).toBeVisible();
+    expect(graphView().getByRole('button', { name: /Newly published note/ })).toBeVisible();
     act(() => stream().fail());
     expect(screen.getByText(/^Activity reconnecting$/i)).toBeVisible();
     network.fetch.mockResolvedValueOnce(Response.json({ ...graph, nodes: graph.nodes.filter((note) => note.id !== 'note-c'), edges: [graph.edges[0]] }));
     act(() => stream().open());
     await flush();
-    expect(browser().queryByRole('button', { name: /Published finding/ })).not.toBeInTheDocument();
+    expect(graphView().queryByRole('button', { name: /Published finding/ })).not.toBeInTheDocument();
     network.fetch.mockRejectedValueOnce(new Error('Refresh unavailable'));
     fireEvent.click(screen.getByRole('button', { name: 'Refresh graph' }));
     await flush();
     expect(screen.getByText(/Refresh unavailable/)).toBeVisible();
-    expect(browser().getByRole('button', { name: /Storage decision/ })).toBeVisible();
+    expect(graphView().getByRole('button', { name: /Storage decision/ })).toBeVisible();
   });
 
   it('surfaces malformed stream events without losing the usable graph', async () => {
@@ -121,7 +129,7 @@ describe('live knowledge explorer', () => {
     await flush();
     act(() => stream().emit('{"type":"invented"}'));
     expect(screen.getByText(/invalid.*event|malformed.*event/i)).toBeVisible();
-    expect(browser().getByRole('button', { name: /Storage decision/ })).toBeVisible();
+    expect(graphView().getByRole('button', { name: /Storage decision/ })).toBeVisible();
     act(() => stream().emit(event()));
     expect(screen.getByText('Ada curator')).toBeVisible();
   });
@@ -143,6 +151,26 @@ describe('live knowledge explorer', () => {
     expect(signal?.aborted).toBe(true);
     expect(vi.getTimerCount()).toBe(0);
     expect(ControlledEventSource.instances).toHaveLength(1);
+    const second = render(<App />);
+    await flush();
+    let finish!: (response: Response) => void;
+    let noteSignal: AbortSignal | null | undefined;
+    network.fetch.mockImplementationOnce(async (_url, options) => {
+      noteSignal = options?.signal;
+      return new Promise<Response>((resolve) => { finish = resolve; });
+    });
+    fireEvent.keyDown(graphView().getByRole('button', { name: /Storage decision/ }), { key: 'Enter' });
+    await flush();
+    expect(screen.getByText('Loading note contents…')).toBeVisible();
+    fireEvent.keyDown(screen.getByRole('button', { name: /Back to graph/ }), { key: 'Escape' });
+    expect(noteSignal?.aborted).toBe(true);
+    fireEvent.click(graphView().getByRole('button', { name: /Repository guide/ }));
+    await flush();
+    finish(Response.json(noteContent()));
+    await flush();
+    expect(screen.getByLabelText('Markdown source')).toHaveTextContent('# Repository guide');
+    expect(screen.getByLabelText('Markdown source')).not.toHaveTextContent('# Storage decision');
+    second.unmount();
   });
 
   it('ignores an older snapshot that arrives after a newer graph refresh', async () => {
@@ -154,10 +182,10 @@ describe('live knowledge explorer', () => {
     network.fetch.mockResolvedValueOnce(Response.json({ ...graph, nodes: [...graph.nodes, { id: 'latest', title: 'Latest published note', type: 'guide', path: 'guides/latest.md' }] }));
     act(() => stream().emit(event({ type: 'graph_changed', node_ids: [] })));
     await flush();
-    expect(browser().getByRole('button', { name: /Latest published note/ })).toBeVisible();
+    expect(graphView().getByRole('button', { name: /Latest published note/ })).toBeVisible();
     resolveOlder(Response.json(graph));
     await flush();
-    expect(browser().getByRole('button', { name: /Latest published note/ })).toBeVisible();
+    expect(graphView().getByRole('button', { name: /Latest published note/ })).toBeVisible();
   });
 
   it('offers recovery for a closed stream without hiding the loaded graph', async () => {
@@ -167,7 +195,7 @@ describe('live knowledge explorer', () => {
     const original = stream();
     act(() => original.fail(true));
     expect(screen.getByText(/^Activity disconnected$/i)).toBeVisible();
-    expect(browser().getByRole('button', { name: /Storage decision/ })).toBeVisible();
+    expect(graphView().getByRole('button', { name: /Storage decision/ })).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: /Reconnect activity/ }));
     await flush();
     expect(original.closed).toBe(true);

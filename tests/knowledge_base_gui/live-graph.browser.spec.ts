@@ -1,10 +1,14 @@
 // Verify real Chromium graph geometry, overlapping colored strokes, navigation and mobile fit.
 import type { Page } from '@playwright/test';
 import { expect, test } from './playwright-runtime';
-import { event, graph, START } from './fixtures';
+import { event, graph, noteContent, START } from './fixtures';
 
 async function openGraph(page: Page) {
   await page.route('**/api/graph', (route) => route.fulfill({ json: graph }));
+  await page.route('**/api/notes/**', (route) => {
+    const id = decodeURIComponent(new URL(route.request().url()).pathname.slice('/api/notes/'.length));
+    return route.fulfill({ json: { ...noteContent(id), markdown: noteContent(id).markdown + '\n' + 'long-token-'.repeat(60) } });
+  });
   await page.addInitScript(() => {
     class BrowserStream extends EventTarget {
       static CONNECTING = 0;
@@ -25,7 +29,7 @@ async function openGraph(page: Page) {
     Object.assign(window, { EventSource: BrowserStream });
   });
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Knowledge explorer' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Interactive knowledge graph' })).toBeVisible();
   await expect(page.locator('.react-flow__node[data-id="note-a"]')).toBeVisible();
   await expect(page.locator('.react-flow__edge')).toHaveCount(2);
 }
@@ -55,6 +59,7 @@ test('renders overlapping real edge paths and independently expires each server-
   expect(geometry.every(({ length }) => Number.isFinite(length) && length > 0)).toBe(true);
   expect(geometry[0].path).not.toEqual(geometry[1].path);
   await expect(page.getByTestId('node-visit')).toHaveCount(3);
+  await page.screenshot({ path: '/tmp/tribal-obsidian-curator-overlap.png', fullPage: true });
   await page.clock.setFixedTime(new Date(START + 10000));
   await expect(strokes).toHaveCount(1);
   await expect(strokes).toHaveAttribute('data-run-id', 'run-lin');
@@ -62,35 +67,55 @@ test('renders overlapping real edge paths and independently expires each server-
   await page.clock.setFixedTime(new Date(START + 14000));
   await expect(strokes).toHaveCount(0);
   await expect(page.getByTestId('node-visit')).toHaveCount(0);
-  await page.locator('.react-flow__node[data-id="note-a"]').click();
-  await expect(page.getByRole('region', { name: 'Note details' }).getByText('decisions/storage.md')).toBeVisible();
   const viewport = page.locator('.react-flow__viewport');
   const before = await viewport.getAttribute('style');
   await page.getByRole('button', { name: /^Zoom In$/i }).click();
   await expect.poll(() => viewport.getAttribute('style')).not.toEqual(before);
+  const zoomed = await viewport.getAttribute('style');
+  const dot = page.locator('.react-flow__node[data-id="note-a"]');
+  await dot.click();
+  await expect(page.getByLabel('Markdown source')).toContainText('Actual Markdown body');
+  await expect(page.getByRole('region', { name: 'Curator activity' })).toBeVisible();
+  await expect(dot).toBeHidden();
+  await page.getByRole('button', { name: /Back to graph/ }).click();
+  await expect(dot).toBeVisible();
+  await expect(dot).toBeFocused();
+  await expect(viewport).toHaveAttribute('style', zoomed!);
+  await page.screenshot({ path: '/tmp/tribal-obsidian-graph-desktop.png', fullPage: true });
+
 });
 
-test('keeps the note browser and inspector usable at 390px with reduced motion', async ({ page }) => {
+test('keeps graph, Markdown source and curator activity usable at 390px with reduced motion', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await openGraph(page);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-  const browser = page.getByRole('complementary', { name: 'Note browser' });
-  await browser.getByRole('button', { name: /Repository guide/ }).click();
-  await expect(page.getByRole('region', { name: 'Note details' }).getByText('guides/repository.md')).toBeVisible();
-  await page.getByRole('searchbox', { name: 'Search notes' }).fill('no matching title');
-  await expect(browser.getByText(/No notes match/)).toBeVisible();
+  const dot = page.locator('.react-flow__node[data-id="note-b"]');
+  await dot.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByLabel('Markdown source')).toContainText('# Repository guide');
+  await expect(page.getByRole('region', { name: 'Curator activity' })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  const source = page.getByLabel('Markdown source');
+  expect(await source.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+  await page.screenshot({ path: '/tmp/tribal-obsidian-reader-mobile.png', fullPage: true });
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('region', { name: 'Note contents' })).toHaveCount(0);
+  await expect(dot).toBeVisible();
+  await expect(dot).toBeFocused();
 });
 
 test('keeps selected graph notes and their links intact when Backspace is pressed', async ({ page }) => {
   await openGraph(page);
   const selected = page.locator('.react-flow__node[data-id="note-a"]');
   await selected.click();
-  await expect(page.getByRole('region', { name: 'Note details' }).getByText('decisions/storage.md')).toBeVisible();
+  await expect(page.getByLabel('Markdown source')).toContainText('# Storage decision');
+  await page.getByRole('button', { name: /Back to graph/ }).click();
   await page.keyboard.press('Backspace');
   await expect(selected).toBeVisible();
   await expect(page.locator('.react-flow__node')).toHaveCount(3);
   await expect(page.locator('.react-flow__edge')).toHaveCount(2);
-  await expect(page.getByRole('complementary', { name: 'Note browser' }).getByRole('button', { name: /Storage decision/ })).toBeVisible();
+  await expect(selected).toBeFocused();
+  await expect(page.locator('.react-flow__background')).toHaveCount(0);
+  await expect(page.locator('.react-flow__edge path[marker-end]')).toHaveCount(0);
 });
