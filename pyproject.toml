@@ -5,18 +5,19 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "tribal"
 version = "0.1.0"
-description = "GitHub-authenticated project MCP workers for Tribal"
+description = "Basic local knowledge-base MCP server for Tribal"
 requires-python = ">=3.12,<3.13"
 dynamic = ["dependencies"]
 
 [tool.setuptools.dynamic]
 dependencies = { file = ["requirements.txt"] }
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[project.scripts]
+tribal-mcp-server = "server:main"
 
-[tool.setuptools.package-data]
-tribal = ["templates/*.html"]
+[tool.setuptools]
+package-dir = { "" = "src/tribal-mcp-server/src" }
+py-modules = ["server"]
 
 [tool.ruff]
 line-length = 100
