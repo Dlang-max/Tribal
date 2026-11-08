@@ -1,5 +1,5 @@
 // Render note dots, straight links and independently fading curator trails with React Flow.
-import { createContext, useContext, useEffect, useMemo } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { BaseEdge, Controls, Handle, Position, ReactFlow, useNodesState,
   type Edge, type EdgeProps, type Node, type NodeProps } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
@@ -58,6 +58,7 @@ export interface KnowledgeGraphProps {
 }
 
 export function KnowledgeGraph({ graph, activity, now, onSelect, selectedId }: KnowledgeGraphProps) {
+  const [hoveredId, setHoveredId] = useState<string>();
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<NoteData>>([]);
   const positions = useMemo(() => layoutGraph(graph), [graph]);
   useEffect(() => {
@@ -68,7 +69,7 @@ export function KnowledgeGraph({ graph, activity, now, onSelect, selectedId }: K
         ariaRole: 'button', ariaLabel: `${note.title}, ${note.type} note. Open note`, style: { width: 44, height: 44 } }));
     });
   }, [graph, positions, selectedId, setNodes]);
-  const edges: Edge[] = graph.edges.map((edge) => ({ ...edge, type: 'curator', style: { stroke: '#62616a', strokeWidth: 1 } }));
+  const edges: Edge[] = graph.edges.map((edge) => ({ ...edge, type: 'curator', style: { stroke: edge.source === hoveredId ? '#b49ae8' : '#62616a', strokeWidth: edge.source === hoveredId ? 3.4 : 1 } }));
   return <VisitContext.Provider value={{ activity, now }}><section className="graph-panel" aria-label="Interactive knowledge graph"
     onKeyDownCapture={(event) => {
       if (event.key !== 'Enter' && event.key !== ' ') return;
@@ -78,6 +79,7 @@ export function KnowledgeGraph({ graph, activity, now, onSelect, selectedId }: K
     <div className="graph-caption"><span>{graph.nodes.length} notes · {edges.length} links</span><span>Click a note to read</span></div>
     <div className="graph-canvas"><ReactFlow nodes={nodes} edges={edges} onNodesChange={onNodesChange} nodeTypes={nodeTypes} edgeTypes={edgeTypes}
       fitView fitViewOptions={{ padding: 0.35, maxZoom: 1.2 }} nodesDraggable={false} nodesConnectable={false} edgesReconnectable={false} deleteKeyCode={null}
+      onNodeMouseEnter={(_, node) => setHoveredId(node.id)} onNodeMouseLeave={() => setHoveredId(undefined)}
       onNodeClick={(_, node) => onSelect(node.id)} minZoom={0.15} maxZoom={3} colorMode="dark">
       <Controls showInteractive={false} />
     </ReactFlow>{nodes.length === 0 && <p className="graph-empty">The knowledge base has no notes yet.</p>}</div>
