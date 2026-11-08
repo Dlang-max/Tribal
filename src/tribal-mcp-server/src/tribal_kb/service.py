@@ -74,10 +74,18 @@ class KnowledgeBaseService:
     # Extract resolved native wikilinks while respecting code and comment masking.
     def _links(self, note_id, markdown, manifests):
         by_path = {note["path"][:-3]: note["id"] for note in manifests}
-        visible = self.validator._visible_markdown(markdown)
+        body = markdown.partition("\n---\n")[2]
+        visible = self.validator._visible_markdown(body)
+        links = [match[1] for match in self.validator.WIKILINK.finditer(visible)]
+        metadata = _metadata(markdown)
+        for key in self.validator.LINK_FIELDS:
+            value = metadata.get(key)
+            match = self.validator.WIKILINK.fullmatch(value) if isinstance(value, str) else None
+            if match:
+                links.append(match[1])
         targets = set()
-        for match in self.validator.WIKILINK.finditer(visible):
-            path, _ = self.validator._link_parts(match[1])
+        for link in links:
+            path, _ = self.validator._link_parts(link)
             if path in by_path and by_path[path] != note_id:
                 targets.add(by_path[path])
         return [_edge(note_id, target) for target in sorted(targets)]
@@ -171,6 +179,22 @@ class KnowledgeBaseService:
             return [asdict(issue) for issue in self.validator.validate_vault(
                 root, expected_project_id=self.project_id)]
 
+    # Replace lifecycle scalar spans while preserving other valid YAML and source formatting.
+    def _archive(self, markdown):
+        header, separator, body = markdown.partition("\n---\n")
+        frontmatter = header.removeprefix("---\n")
+        now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+        replacements = []
+        for key, value in yaml.compose(frontmatter).value:
+            if key.value in {"status", "updated_at"}:
+                text = "archived" if key.value == "status" else f'"{now}"'
+                if frontmatter[value.start_mark.index:value.end_mark.index].endswith("\n"):
+                    text += "\n"
+                replacements.append((value.start_mark.index, value.end_mark.index, text))
+        for start, end, text in sorted(replacements, reverse=True):
+            frontmatter = frontmatter[:start] + text + frontmatter[end:]
+        return "---\n" + frontmatter + separator + body
+
     # Coordinate revision checks, whole-vault validation, immutable uploads, and SQL publication.
     def _publish(self, changes, request_id, request_hash):
         with self.catalog.publication(self.project_id) as transaction:
@@ -189,12 +213,7 @@ class KnowledgeBaseService:
                         (old is None or old["revision"] != change["expected_revision"])):
                     return _result("conflict", f"Revision or create collision at {path}"), []
                 if action == "archive":
-                    text = source[path]
-                    header, body = text.split("\n---\n", 1)
-                    header = re.sub(r"(?m)^status:[^\n]*$", "status: archived", header)
-                    now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-                    header = re.sub(r"(?m)^updated_at:[^\n]*$", f'updated_at: "{now}"', header)
-                    proposed[path] = header + "\n---\n" + body
+                    proposed[path] = self._archive(source[path])
                 else:
                     proposed[path] = change["markdown"]
             if not changes:
