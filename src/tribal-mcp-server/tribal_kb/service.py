@@ -20,7 +20,7 @@ from .embeddings import validate_vectors
 
 TYPES = {"project", "repository", "branch", "commit", "merge", "push", "finding",
          "insight", "decision", "handoff", "guide"}
-ROOT = Path(__file__).resolve().parents[4]
+ROOT = Path(__file__).resolve().parents[3]
 
 
 # Load the existing standalone validator without moving or changing its rules.

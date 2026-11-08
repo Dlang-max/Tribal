@@ -8,6 +8,10 @@ curator or fallback database is installed.
 
 Follow [Connect Codex to Tribal](../../docs/connecting-codex-to-tribal.md) for setup.
 
+The source lives at `src/tribal-mcp-server/server.py`, alongside the `tribal_kb/`
+package. After installation and configuration, start it directly with
+`.venv/bin/python src/tribal-mcp-server/server.py` or use `tribal-mcp-server`.
+
 | Route | Purpose |
 | --- | --- |
 | `/mcp` | Public `seed_agent_context` and `update_knowledge_base` |

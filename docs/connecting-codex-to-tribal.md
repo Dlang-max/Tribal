@@ -46,6 +46,9 @@ codex login status
 .venv/bin/tribal-mcp-server
 ```
 
+Alternatively, after the same installation and configuration, start the source
+directly with `.venv/bin/python src/tribal-mcp-server/server.py`.
+
 The runtime uses CLI flags verified against Codex 0.167.0. Use the account under
 the operating-system user that starts the server. A separate `CODEX_HOME` may
 isolate server authentication; set it for both `codex login` and server startup.
