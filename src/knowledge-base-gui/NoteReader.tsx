@@ -29,7 +29,8 @@ export function NoteReader({ note, notes, onSelect, onClose }: { note: GraphNode
       onKeyDown={(event) => {
         if (event.key === 'Escape') { event.stopPropagation(); onClose(); }
       }}>
-      <div className="reader-heading"><div><h2 id="reader-title">{note.title}</h2><p>{note.path}</p></div>
+      <div className="reader-heading"><div><div className="reader-title-row"><h2 id="reader-title">{note.title}</h2>
+        {content?.status === 'archived' && <span className="note-status-badge">Archived</span>}</div><p>{note.path}</p></div>
         <button ref={closeButton} onClick={onClose}>← Back to graph</button></div>
       {!content && !error && <p className="reader-message" role="status">Loading note contents…</p>}
       {error && <div className="reader-message"><p role="alert">{error}</p><button onClick={() => setAttempt((value) => value + 1)}>Retry note</button></div>}

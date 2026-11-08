@@ -38,6 +38,7 @@ class RunState:
     request_hash: str | None = None
     reads: dict[str, dict] = field(default_factory=dict)
     receipt: dict | None = None
+    publication: dict | None = None
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
     tool_tasks: set[asyncio.Task] = field(default_factory=set)
     active: bool = True
@@ -129,14 +130,36 @@ class CodexCurator:
 
     # Publish a consistent activity envelope without private model reasoning.
     async def emit(self, run: RunState, kind: str, message: str, *,
-                   status: str = "working", node_ids=None, edge_ids=None) -> None:
+                   status: str = "working", node_ids=None, edge_ids=None,
+                   action: str | None = None, target_node_id: str | None = None,
+                   publication: dict | None = None) -> None:
         if not run.active and kind in {"activity", "graph_changed"}:
             return
-        await self.events.publish({
+        event = {
             "type": kind, "run_id": run.run_id, "name": run.name, "color": run.color,
             "message": message, "status": status,
             "node_ids": node_ids or [], "edge_ids": edge_ids or [],
-        })
+            "run_kind": "update" if run.writable else "context",
+        }
+        if action is not None:
+            event["action"] = action
+        if target_node_id is not None:
+            event["target_node_id"] = target_node_id
+        if publication is not None:
+            event["publication"] = publication
+        await self.events.publish(event)
+
+    # Enrich copied receipt paths from an available graph without altering saved evidence.
+    def _publication_metadata(self, receipt: dict, graph: dict | None = None) -> dict:
+        nodes = {node["path"]: node for node in graph["nodes"]} if graph else {}
+        notes = []
+        for saved in receipt["notes"]:
+            note = {"action": saved["action"], "path": saved["path"]}
+            node = nodes.get(saved["path"])
+            if node is not None:
+                note.update(note_id=node["id"], title=node["title"])
+            notes.append(note)
+        return {"status": receipt["status"], "notes": notes}
 
     # Expose exactly the five internal operations through scope-checked wrappers.
     def _create_internal_server(self) -> FastMCP:
@@ -151,7 +174,7 @@ class CodexCurator:
                 self.current_run()
                 result = await self.service.search_notes(query, limit)
                 await self.emit(run, "activity", f"Searched notes: {query[:160]}",
-                                node_ids=[note["id"] for note in result])
+                                node_ids=[note["id"] for note in result], action="search")
                 return result
 
         # Record the actual note used as a public context source.
@@ -162,7 +185,8 @@ class CodexCurator:
                 self.current_run()
                 note = await self.service.read_note(note_id)
                 run.reads[note["path"]] = note
-                await self.emit(run, "activity", f"Read {note['title']}", node_ids=[note["id"]])
+                await self.emit(run, "activity", f"Read {note['title']}", node_ids=[note["id"]],
+                                action="read", target_node_id=note["id"])
                 return note
 
         # Traverse a verified stored edge and record its target as read evidence.
@@ -177,7 +201,8 @@ class CodexCurator:
                 edge_ids = [edge["id"] for edge in graph["edges"]
                             if edge["source"] == source_id and edge["target"] == target_id]
                 await self.emit(run, "activity", f"Followed link to {note['title']}",
-                                node_ids=[source_id, target_id], edge_ids=edge_ids)
+                                node_ids=[source_id, target_id], edge_ids=edge_ids,
+                                action="traverse", target_node_id=note["id"])
                 return note
 
         # Retrieve the trusted publication rules for an allowed note type.
@@ -187,7 +212,8 @@ class CodexCurator:
             async with run.lock:
                 self.current_run()
                 result = await self.service.get_note_spec(note_type)
-                await self.emit(run, "activity", f"Read {note_type} note specification")
+                await self.emit(run, "activity", f"Read {note_type} note specification",
+                                action="spec")
                 return result
 
         # Publish one validated batch and retain its authoritative save receipt.
@@ -205,11 +231,16 @@ class CodexCurator:
                 )
                 if result["status"] == "updated":
                     run.receipt = {key: result[key] for key in ("status", "message", "notes")}
-                    graph = await self.service.graph()
-                    paths = {note["path"] for note in result["notes"]}
+                    run.publication = self._publication_metadata(run.receipt)
+                    # A snapshot outage cannot undo a confirmed save or hide its paths.
+                    graph = None
+                    with suppress(Exception):
+                        graph = await self.service.graph()
+                    run.publication = self._publication_metadata(run.receipt, graph)
                     await self.emit(run, "graph_changed", result["message"],
-                                    node_ids=[node["id"] for node in graph["nodes"]
-                                              if node["path"] in paths])
+                                    node_ids=[note["note_id"] for note in run.publication["notes"]
+                                              if "note_id" in note],
+                                    action="publish", publication=run.publication)
                 else:
                     await self.emit(run, "activity", f"Publication {result['status']}")
                 return result
@@ -265,14 +296,21 @@ class CodexCurator:
                     # A blocking write may still commit; retry reconciles its durable receipt.
                     raise RuntimeError("Curator exited with unfinished knowledge operations; retry the same request ID")
                 self._check_receipts(run, result)
+                publication = None
+                if run.writable:
+                    publication = run.publication or self._publication_metadata(result)
                 await self.emit(run, "run_finished", "Knowledge update complete" if run.writable
-                                else "Context ready", status="done")
+                                else "Context ready", status="done",
+                                action="publish" if run.writable else None,
+                                publication=publication)
                 return result
         except BaseException as error:
             self._revoke_run(token, run)
             await self._cancel_tool_tasks(run.tool_tasks)
             await self.emit(run, "run_failed", "Curator cancelled" if isinstance(error, asyncio.CancelledError)
-                            else f"Curator failed: {type(error).__name__}", status="failed")
+                            else f"Curator failed: {type(error).__name__}", status="failed",
+                            action="publish" if run.receipt is not None else None,
+                            publication=run.publication)
             if isinstance(error, asyncio.CancelledError):
                 raise
             raise ToolError(f"Curator failed: {error}") from error

@@ -1,17 +1,34 @@
 // Maintain independently fading visits for every server-side curator run.
 import type { ActivityEvent, ActivityState, Visit } from './types';
 export const FADE_MS = 10_000;
+export const OBSERVED_TARGET_LIMIT = 200;
 export function emptyActivityState(): ActivityState { return { runs: {}, nodes: {}, edges: {} }; }
 
 export function applyActivityEvent(state: ActivityState, event: ActivityEvent): ActivityState {
   const timestamp = Date.parse(event.timestamp);
   if (!Number.isFinite(timestamp)) return state;
-  const visit = { run_id: event.run_id, name: event.name, color: event.color, timestamp };
+  const visit = { run_id: event.run_id, name: event.name, color: event.color, timestamp,
+    ...(event.action ? { action: event.action } : {}), ...(event.target_node_id ? { target_node_id: event.target_node_id } : {}) };
   const next = { ...state, nodes: { ...state.nodes }, edges: { ...state.edges } };
   const previous = Object.hasOwn(state.runs, event.run_id) ? state.runs[event.run_id] : undefined;
-  if (!previous || Date.parse(previous.timestamp) <= timestamp) {
-    next.runs = { ...state.runs, [event.run_id]: event };
+  const observed_node_ids = [...new Set([...(previous?.observed_node_ids ?? []), ...event.node_ids,
+    ...(event.target_node_id ? [event.target_node_id] : [])])].slice(-OBSERVED_TARGET_LIMIT);
+  const observed_edge_ids = [...new Set([...(previous?.observed_edge_ids ?? []), ...event.edge_ids])].slice(-OBSERVED_TARGET_LIMIT);
+  const lastRead = (event.action === 'read' || event.action === 'traverse') && event.target_node_id
+    && (!previous?.lastRead || Date.parse(previous.lastRead.timestamp) <= timestamp) ? event : previous?.lastRead;
+  const publicationEvent = event.publication
+    && (!previous?.publicationEvent || Date.parse(previous.publicationEvent.timestamp) <= timestamp) ? event : previous?.publicationEvent;
+  const receipts = [...(previous?.receipts ?? [])];
+  for (const note of event.publication?.notes ?? []) {
+    const index = receipts.findIndex((receipt) => receipt.path === note.path && receipt.action === note.action);
+    if (index < 0) receipts.push({ ...note, timestamp: event.timestamp });
+    else if (Date.parse(receipts[index].timestamp) <= timestamp) receipts[index] = { ...note, timestamp: event.timestamp };
   }
+  next.runs = { ...state.runs, [event.run_id]: {
+    ...(!previous || Date.parse(previous.timestamp) <= timestamp ? event : previous),
+    run_kind: event.run_kind ?? previous?.run_kind,
+    observed_node_ids, observed_edge_ids, lastRead, publicationEvent, receipts,
+  } };
   for (const kind of ['nodes', 'edges'] as const) {
     for (const id of kind === 'nodes' ? event.node_ids : event.edge_ids) {
       const visits = Object.hasOwn(state[kind], id) ? state[kind][id] : {};

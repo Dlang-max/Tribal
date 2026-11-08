@@ -1,0 +1,41 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/python3 /home/daniel-lang/Desktop/UB_Hacking_2026/Tribal/src/codex_kb_hooks.py turn-start",
+            "timeout": 10,
+            "statusMessage": "Requesting Tribal context review"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/python3 /home/daniel-lang/Desktop/UB_Hacking_2026/Tribal/src/codex_kb_hooks.py after-git",
+            "timeout": 10,
+            "statusMessage": "Requesting Tribal context review"
+          }
+        ],
+        "matcher": "^Bash$"
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/python3 /home/daniel-lang/Desktop/UB_Hacking_2026/Tribal/src/codex_kb_hooks.py turn-end",
+            "timeout": 10,
+            "statusMessage": "Requesting Tribal context review"
+          }
+        ]
+      }
+    ]
+  }
+}

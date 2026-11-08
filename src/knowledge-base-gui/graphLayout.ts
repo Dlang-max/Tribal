@@ -1,5 +1,59 @@
-// Place note dots with a deterministic, bounded force layout using actual graph links.
+// Place note dots and separate overlapping label areas without changing the graph's links.
 import type { GraphSnapshot } from './types';
+
+export const LABEL_WIDTH = 176;
+export const LABEL_HEIGHT = 40;
+export const LABEL_MIN_ZOOM = 0.65;
+
+type PositionedNote = { id: string; position: { x: number; y: number } };
+
+// Resolve nearby dot/label collisions while keeping the user's active note stationary.
+export function spaceGraphNodes<T extends PositionedNote>(nodes: T[], zoom: number, pinnedId?: string, animate = true): T[] {
+  const labelsVisible = zoom >= LABEL_MIN_ZOOM;
+  const width = labelsVisible ? Math.max(44, (LABEL_WIDTH + 12) / zoom) : 44;
+  const height = labelsVisible ? 34 + (LABEL_HEIGHT + 12) / zoom : 44;
+  const offsets = nodes.map(() => ({ x: 0, y: 0 }));
+  const cells = new Map<string, number[]>();
+  let overlapping = false;
+  nodes.forEach((node, index) => {
+    const cellX = Math.floor(node.position.x / width);
+    const cellY = Math.floor(node.position.y / height);
+    for (let x = cellX - 1; x <= cellX + 1; x++) {
+      for (let y = cellY - 1; y <= cellY + 1; y++) {
+        for (const other of cells.get(`${x},${y}`) ?? []) {
+          const dx = node.position.x - nodes[other].position.x;
+          const dy = node.position.y - nodes[other].position.y;
+          const overlapX = width - Math.abs(dx);
+          const overlapY = height - Math.abs(dy);
+          if (overlapX <= 0.1 || overlapY <= 0.1) continue;
+          const pinned = node.id === pinnedId;
+          const otherPinned = nodes[other].id === pinnedId;
+          const share = pinned || otherPinned ? 1 : 0.5;
+          const axis = overlapX < overlapY ? 'x' : 'y';
+          const distance = axis === 'x' ? dx : dy;
+          const shift = (axis === 'x' ? overlapX : overlapY) * (distance < 0 ? -1 : 1) * share;
+          if (!pinned) offsets[index][axis] += shift;
+          if (!otherPinned) offsets[other][axis] -= shift;
+          overlapping = true;
+        }
+      }
+    }
+    const key = `${cellX},${cellY}`;
+    const cell = cells.get(key) ?? [];
+    cell.push(index);
+    cells.set(key, cell);
+  });
+  if (!overlapping) return nodes;
+  const limit = animate ? 6 / zoom : Infinity;
+  return nodes.map((node, index) => {
+    const offset = offsets[index];
+    if (!offset.x && !offset.y) return node;
+    return { ...node, position: {
+      x: node.position.x + Math.max(-limit, Math.min(limit, offset.x * 0.6)),
+      y: node.position.y + Math.max(-limit, Math.min(limit, offset.y * 0.6)),
+    } };
+  });
+}
 
 export function layoutGraph(graph: GraphSnapshot): Map<string, { x: number; y: number }> {
   const notes = [...graph.nodes].sort((a, b) => a.id.localeCompare(b.id));

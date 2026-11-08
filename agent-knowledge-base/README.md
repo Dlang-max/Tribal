@@ -20,3 +20,16 @@ It is an interface specification, not a runtime implementation.
 
 The documented v1 defaults are practical specification choices made for these requests;
 they do not imply that every storage, synchronization, or MCP detail is settled.
+
+## Agent instructions
+
+The [knowledge-base bootstrap agent guide](agents/knowledge-base-bootstrap/AGENTS.md)
+explains how a calling agent inspects a project, retrieves existing Tribal
+context, submits evidence for the initial linked project/repository notes, and
+verifies retrieval. It uses an existing project MCP connection.
+
+The [Codex KB hooks agent guide](agents/codex-knowledge-base-hooks/AGENTS.md)
+explains how to create client hooks targeting an existing Tribal KB for turn
+starts/ends, branch switches, commits, completed merges and confirmed pushes.
+It defines hook targets, Git evidence, public MCP calls and replay handling;
+it does not install or activate hooks.

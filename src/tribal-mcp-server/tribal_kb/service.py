@@ -96,7 +96,7 @@ class KnowledgeBaseService:
         manifests = [note for note, _ in snapshot]
         for note, markdown in snapshot:
             if note["id"] == note_id:
-                return {key: note[key] for key in ("id", "title", "type", "path", "revision")} | {
+                return {key: note[key] for key in ("id", "title", "type", "path", "revision", "status")} | {
                     "markdown": markdown, "links": self._links(note_id, markdown, manifests)}
         raise KeyError(f"Note not found: {note_id}")
 

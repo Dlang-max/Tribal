@@ -47,6 +47,14 @@ Activity reflects successful tool wrappers, with edges highlighted only after
 verified traversal. Each browser has a bounded queue; a slow client drops older
 events. SSE is best effort without durable replay: refresh `/api/graph` on connect,
 reconnect, and `graph_changed`. Runs have independent IDs, names, and colors.
+Optional `run_kind`, `action` (`search`, `read`, `traverse`, `spec`, `publish`),
+and `target_node_id` fields distinguish observed operations from search candidates.
+Successful graph changes and checked final update outcomes include `publication`
+with a status and receipt-backed note actions/paths; available graph snapshots add
+note IDs and titles. Missing or archived targets retain their receipt paths. Failed
+or no-op intermediate applies do not confirm publication. A failed run retains any
+already confirmed save metadata; lifecycle failure does not undo publication.
+Public MCP result envelopes and private tool permissions remain unchanged.
 
 `create_server(curator=None)` preserves the original injectable public boundary
 and returns explicit disconnected errors. `create_app(service=..., curator=...,

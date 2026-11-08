@@ -21,7 +21,16 @@ export function parseActivityEvent(value: unknown): ActivityEvent {
     || typeof value.message !== 'string'
     || !['working', 'done', 'failed'].includes(String(value.status))
     || !ids(value.node_ids) || !ids(value.edge_ids)
-    || !text(value.timestamp) || !Number.isFinite(Date.parse(value.timestamp))) {
+    || !text(value.timestamp) || !Number.isFinite(Date.parse(value.timestamp))
+    || (value.action !== undefined && (typeof value.action !== 'string' || !['search', 'read', 'traverse', 'spec', 'publish'].includes(value.action)))
+    || (value.target_node_id !== undefined && !text(value.target_node_id))
+    || (value.run_kind !== undefined && (typeof value.run_kind !== 'string' || !['context', 'update'].includes(value.run_kind)))
+    || (value.publication !== undefined && (!record(value.publication)
+      || typeof value.publication.status !== 'string' || !['updated', 'unchanged', 'needs_information'].includes(value.publication.status)
+      || !Array.isArray(value.publication.notes)
+      || !value.publication.notes.every((note) => record(note)
+        && typeof note.action === 'string' && ['created', 'updated', 'archived'].includes(note.action) && text(note.path)
+        && (note.note_id === undefined || text(note.note_id)) && (note.title === undefined || text(note.title)))))) {
     throw new Error('The activity stream returned an invalid curator event.');
   }
   return value as unknown as ActivityEvent;
@@ -51,6 +60,7 @@ export async function fetchNote(noteId: string, signal?: AbortSignal): Promise<N
   const value: unknown = await response.json();
   if (!record(value) || value.id !== noteId || !['id', 'title', 'type', 'path'].every((key) => text(value[key]))
     || typeof value.markdown !== 'string' || !Number.isInteger(value.revision) || Number(value.revision) < 1
+    || (value.status !== undefined && (typeof value.status !== 'string' || !['active', 'archived', 'superseded'].includes(value.status)))
     || !Array.isArray(value.links) || !value.links.every((link) => record(link) && ['id', 'source', 'target'].every((key) => text(link[key])))) {
     throw new Error('The server returned invalid note contents.');
   }

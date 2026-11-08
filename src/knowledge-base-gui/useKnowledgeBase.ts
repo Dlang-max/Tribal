@@ -12,6 +12,7 @@ export function useKnowledgeBase() {
   const [now, setNow] = useState(Date.now);
   const [streamStatus, setStreamStatus] = useState<'connecting' | 'connected' | 'reconnecting' | 'error'>('connecting');
   const [streamError, setStreamError] = useState<string | null>(null);
+  const [historyGap, setHistoryGap] = useState(false);
   const [connection, setConnection] = useState(0);
   const refreshRef = useRef<() => void>(() => {});
   const refresh = useCallback(() => refreshRef.current(), []);
@@ -58,16 +59,19 @@ export function useKnowledgeBase() {
           setStreamError(null);
           if (event.type === 'graph_changed') void load();
         } catch (error) {
+          setHistoryGap(true);
           setStreamError(error instanceof Error ? error.message : 'Unable to read an activity event.');
         }
       };
       source.onerror = () => {
         if (!active) return;
+        setHistoryGap(true);
         const closed = source?.readyState === 2;
         setStreamStatus(closed ? 'error' : 'reconnecting');
         setStreamError(closed ? 'Activity stream closed. Reconnect to resume live activity.' : 'Activity connection lost. Reconnecting automatically…');
       };
     } catch (error) {
+      setHistoryGap(true);
       setStreamStatus('error');
       setStreamError(error instanceof Error ? error.message : 'Activity streaming is unavailable.');
     }
@@ -85,5 +89,5 @@ export function useKnowledgeBase() {
     };
   }, [connection]);
 
-  return { graph, graphError, loading, streamStatus, streamError, activity, now, refresh, reconnect };
+  return { graph, graphError, loading, streamStatus, streamError, historyGap, activity, now, refresh, reconnect };
 }
