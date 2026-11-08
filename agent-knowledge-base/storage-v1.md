@@ -8,9 +8,10 @@ clients for controlled checks; the runtime always configures real adapters.
 
 Source Markdown remains byte-for-byte UTF-8 in immutable, project-prefixed
 SeaweedFS S3 objects. MySQL stores current note manifests, historical revision
-manifests, derived chunks, and project-scoped request receipts. Create the MySQL
+manifests, derived chunks, and project-scoped request receipts. Create the MySQL 8
 database and SeaweedFS bucket before starting; catalog initialization creates only
-its tables. The SQL user needs table creation and read/write permissions.
+its tables. Their NO PAD binary collation preserves opaque IDs exactly, including
+case and trailing spaces. The SQL user needs table creation and read/write permissions.
 
 Publication takes a MySQL project-row lock, checks expected revisions and create
 collisions, stages the complete proposed vault, and runs the existing v1

@@ -110,19 +110,19 @@ class MySQLCatalog:
     # Create durable current notes, history, derived chunks, and replay receipts.
     def initialize(self):
         statements = (
-            "CREATE TABLE IF NOT EXISTS tribal_projects (project_id VARCHAR(255) PRIMARY KEY) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin",
+            "CREATE TABLE IF NOT EXISTS tribal_projects (project_id VARCHAR(255) PRIMARY KEY) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin",
             "CREATE TABLE IF NOT EXISTS tribal_notes (project_id VARCHAR(255) NOT NULL, "
             "note_id VARCHAR(255) NOT NULL,path_hash CHAR(64) NOT NULL,data JSON NOT NULL,"
-            "PRIMARY KEY(project_id,note_id),UNIQUE KEY(project_id,path_hash)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin",
+            "PRIMARY KEY(project_id,note_id),UNIQUE KEY(project_id,path_hash)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin",
             "CREATE TABLE IF NOT EXISTS tribal_revisions (project_id VARCHAR(255) NOT NULL,"
             "note_id VARCHAR(255) NOT NULL,revision BIGINT NOT NULL,data JSON NOT NULL,"
-            "PRIMARY KEY(project_id,note_id,revision)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin",
+            "PRIMARY KEY(project_id,note_id,revision)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin",
             "CREATE TABLE IF NOT EXISTS tribal_chunks (project_id VARCHAR(255) NOT NULL,"
             "note_id VARCHAR(255) NOT NULL,position INT NOT NULL,data JSON NOT NULL,"
-            "PRIMARY KEY(project_id,note_id,position)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin",
+            "PRIMARY KEY(project_id,note_id,position)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin",
             "CREATE TABLE IF NOT EXISTS tribal_receipts (project_id VARCHAR(255) NOT NULL,"
             "request_id VARCHAR(255) NOT NULL,request_hash VARCHAR(128) NOT NULL,result JSON NOT NULL,"
-            "PRIMARY KEY(project_id,request_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin",
+            "PRIMARY KEY(project_id,request_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin",
         )
         connection = self._connect()
         try:
