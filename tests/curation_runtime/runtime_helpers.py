@@ -113,7 +113,7 @@ async def wait_for_marker(marker):
 # Run real uvicorn on an ephemeral loopback socket and always release server resources.
 @asynccontextmanager
 async def live_runtime(tmp_path, *, calls=(), final=None, mode=None, release=None,
-                       timeout_seconds=10, label="codex", service=None):
+                       timeout_seconds=10, label="codex", service=None, model=None):
     server = importlib.import_module("server")
     runtime = importlib.import_module("tribal_kb.runtime")
     activity = importlib.import_module("tribal_kb.activity")
@@ -126,7 +126,7 @@ async def live_runtime(tmp_path, *, calls=(), final=None, mode=None, release=Non
     sock.listen(128)
     base_url = f"http://127.0.0.1:{sock.getsockname()[1]}"
     curator = runtime.CodexCurator(service, events, codex_bin=str(executable),
-        internal_url=base_url + "/internal/mcp", timeout_seconds=timeout_seconds)
+        internal_url=base_url + "/internal/mcp", timeout_seconds=timeout_seconds, model=model)
     app = server.create_app(service=service, curator=curator, events=events)
     runner = uvicorn.Server(uvicorn.Config(app, log_level="error", lifespan="on"))
     task = asyncio.create_task(runner.serve(sockets=[sock]))
