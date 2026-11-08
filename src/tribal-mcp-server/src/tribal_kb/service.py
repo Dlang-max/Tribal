@@ -170,6 +170,14 @@ class KnowledgeBaseService:
 
     # Validate the full proposed snapshot under the native Markdown and graph rules.
     def _validate(self, proposed):
+        collisions = []
+        for path in proposed:
+            parts = path.split("/")
+            if any("/".join(parts[:index]) in proposed for index in range(1, len(parts))):
+                collisions.append({"path": path, "code": "file.path_conflict",
+                                   "message": "A parent path is already a Markdown file"})
+        if collisions:
+            return collisions
         with tempfile.TemporaryDirectory(prefix="tribal-vault-") as directory:
             root = Path(directory)
             for path, markdown in proposed.items():
@@ -260,6 +268,10 @@ class KnowledgeBaseService:
     async def apply_changes(self, changes: list[dict], *, request_id=None, request_hash=None) -> dict:
         if (request_id is None) != (request_hash is None):
             raise ValueError("request_id and request_hash must be provided together")
+        if request_id is not None:
+            receipt = await self.get_request_result(request_id, request_hash)
+            if receipt is not None:
+                return receipt
         issues = self._input_issues(changes)
         if issues:
             return _result("invalid", "Malformed changes", issues=issues)
