@@ -82,3 +82,15 @@ test('keeps the note browser and inspector usable at 390px with reduced motion',
   await expect(browser.getByText(/No notes match/)).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
+
+test('keeps selected graph notes and their links intact when Backspace is pressed', async ({ page }) => {
+  await openGraph(page);
+  const selected = page.locator('.react-flow__node[data-id="note-a"]');
+  await selected.click();
+  await expect(page.getByRole('region', { name: 'Note details' }).getByText('decisions/storage.md')).toBeVisible();
+  await page.keyboard.press('Backspace');
+  await expect(selected).toBeVisible();
+  await expect(page.locator('.react-flow__node')).toHaveCount(3);
+  await expect(page.locator('.react-flow__edge')).toHaveCount(2);
+  await expect(page.getByRole('complementary', { name: 'Note browser' }).getByRole('button', { name: /Storage decision/ })).toBeVisible();
+});
