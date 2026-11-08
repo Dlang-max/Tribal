@@ -1,8 +1,7 @@
 # Project knowledge-base MCP interface — v1
 
-Status: initial interface specification for the hackathon. The basic local
-server exposes these tool signatures without authentication, but the curator
-and knowledge-base backend are not connected. See
+Status: local hackathon interface backed by concurrent server-side Codex
+curators, validated Markdown storage, and observable internal tools. See
 [`src/tribal-mcp-server`](../src/tribal-mcp-server/README.md).
 
 Each project MCP server exposes two tools. Project identity comes from the server
@@ -115,9 +114,12 @@ Embeddings may be refreshed later; valid Markdown writes do not wait for them.
 Retain completed request results within the project so retrying the same ID and
 payload returns the previous result. Reusing an ID with different content/scope
 is an error. A failed or timed-out attempt must be reconciled before retrying
-its writes; an error is not evidence that nothing was saved. Publication/recovery
-implementation is separate work. For the demo, process one update at a time per
-project and preserve note history through archive/supersede rather than hard delete.
+its writes; an error is not evidence that nothing was saved. Different requests run separate curators concurrently. Only publication is
+coordinated: the service checks expected revisions and validates the complete
+proposed vault while holding a project publication lock. Stale writers reread and
+reconsider changes. Successful receipts and current note pointers publish in the
+same MySQL transaction; immutable SeaweedFS objects precede that transaction.
+Preserve note history through archive/supersede rather than hard delete.
 
 ### Example
 
@@ -152,8 +154,9 @@ access, or failed dependencies/storage. Never present these as successful empty
 retrieval or `unchanged`. Retry transient failures with the same update request ID.
 No extra error-code framework is required for the hackathon.
 
-The interface does not grant the curator repository access. Direct source access
-versus bundled evidence remains a runtime choice. Preserve evidence attribution
+The interface does not grant the curator repository access. The runtime uses bundled request evidence and existing notes; it does not mount
+a repository or provide GitHub tools. Context sources must match actual note reads,
+and updated outcomes must match an actual saved publication receipt. Preserve evidence attribution
 and uncertainty; note validation alone does not prove a Git or testing claim.
 
 Storage/search adapters and the curator's internal tools remain implementation

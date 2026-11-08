@@ -1,38 +1,50 @@
 # Tribal MCP server
 
-A minimal, unauthenticated project MCP endpoint. It exposes
-`seed_agent_context(task, repository?, branch?)` and
-`update_knowledge_base(request_id, content, repository?, branch?)`. The server
-accepts the existing FastMCP dependency; it does not need GitHub, Kubernetes,
-a database, or OAuth configuration.
+A local project server with two public MCP tools, one ephemeral Codex curator per
+request, five private KB tools, and live graph activity. Different curator runs
+search and prepare updates concurrently. Only validated publication coordinates
+project revisions. Production storage uses SeaweedFS S3 and MySQL; no simulated
+curator or fallback database is installed.
 
-From the repository root:
+Follow [Connect Codex to Tribal](../../docs/connecting-codex-to-tribal.md) for setup.
 
-```sh
-python3.12 -m venv .venv
-.venv/bin/pip install .
-.venv/bin/tribal-mcp-server
-```
+| Route | Purpose |
+| --- | --- |
+| `/mcp` | Public `seed_agent_context` and `update_knowledge_base` |
+| `/internal/mcp` | Active run-token-scoped internal tools |
+| `/api/graph` | Current project note/link graph |
+| `/api/activity` | Broadcast SSE default messages and comment heartbeats |
+| `/healthz` | Process health; does not certify Codex login or storage availability |
+| `/` | Optional built dashboard from `TRIBAL_GUI_DIRECTORY` |
 
-In another terminal:
+Context curators see `search_notes`, `read_note`, `follow_link`, and
+`get_note_spec`. Update curators also see `apply_changes`. Every private request
+requires its own active `x-tribal-run-token`; context sessions cannot write even
+if they call the tool directly. Tokens expire when runs complete, fail, or cancel.
 
-```sh
-codex mcp add tribal-project --url http://127.0.0.1:8000/mcp
-```
+The runtime starts `codex exec --json --ephemeral --ignore-user-config
+--ignore-rules --skip-git-repo-check --sandbox read-only` in a temporary workspace
+with a JSON output schema and only its private KB MCP configuration. Shell,
+local-image, and web-search tools are disabled. Storage credentials and the
+optional embedding `OPENAI_API_KEY` are omitted from the child environment;
+Codex can use its own configured account or dedicated `CODEX_API_KEY`.
+Requests and stored notes are untrusted evidence, not runtime instructions.
+The model is optional via `TRIBAL_CODEX_MODEL`.
 
-The server listens only on localhost. It has no authentication; use it only in a
-trusted environment. One running instance represents one project; project selection
-and multi-user isolation are not implemented.
+Final sources must match notes the run actually read. An `updated` result must
+match an actual publication receipt, and retries reconcile saved receipts before
+starting another process. Concurrent identical replay IDs share one local run;
+different payloads under a used ID fail. Durable successful receipts belong to
+MySQL. Timeouts/cancellation terminate and reap the process group, revoke tokens,
+and publish a failed lifecycle event. Stderr/JSONL reasoning is never broadcast.
 
-The source remains at `Tribal/src/tribal-mcp-server/src/server.py`. It can also be
-started directly with `.venv/bin/python src/tribal-mcp-server/src/server.py`.
-`HOST` overrides the default bind address. Container startup and connection
-steps are documented in [Connect Codex to Tribal](../../docs/connecting-codex-to-tribal.md).
+Activity reflects successful tool wrappers, with edges highlighted only after
+verified traversal. Each browser has a bounded queue; a slow client drops older
+events. SSE is best effort without durable replay: refresh `/api/graph` on connect,
+reconnect, and `graph_changed`. Runs have independent IDs, names, and colors.
 
-The curation agent, knowledge storage, search, and realtime GUI activity stream
-are not implemented or connected. Both tools return an MCP error until a curator
-is supplied to `create_server`. They never report a successful update or an empty
-search when the backend is unavailable. The `Curator` protocol is the integration
-point for future curation runs and their activity events. The curator is responsible
-for storage, request replay, and the documented result semantics in
-[`mcp-interface-v1.md`](../../agent-knowledge-base/mcp-interface-v1.md).
+`create_server(curator=None)` preserves the original injectable public boundary
+and returns explicit disconnected errors. `create_app(service=..., curator=...,
+events=...)` supports controlled integration checks; the console entrypoint loads
+real configured adapters. Missing project configuration, resources, or backend
+dependencies fail explicitly. Embeddings are optional and never gate valid writes.

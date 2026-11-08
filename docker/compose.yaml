@@ -1,0 +1,70 @@
+# Run local durable stores and an optional Codex-enabled project server.
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: tribal-root-local
+      MYSQL_DATABASE: tribal
+      MYSQL_USER: tribal
+      MYSQL_PASSWORD: tribal-local
+    ports:
+      - "127.0.0.1:3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-utribal", "-ptribal-local"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+  seaweed:
+    image: chrislusf/seaweedfs:4.13
+    command: ["server", "-dir=/data", "-s3", "-s3.config=/etc/seaweedfs/s3.json", "-ip=seaweed", "-volume.max=5", "-master.volumeSizeLimitMB=128"]
+    ports:
+      - "127.0.0.1:8333:8333"
+    volumes:
+      - seaweed-data:/data
+      - ./seaweed-s3.json:/etc/seaweedfs/s3.json:ro
+  initialize-bucket:
+    image: amazon/aws-cli:2.33.15
+    depends_on:
+      seaweed:
+        condition: service_started
+    environment:
+      AWS_ACCESS_KEY_ID: tribal-local
+      AWS_SECRET_ACCESS_KEY: tribal-local-secret
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_EC2_METADATA_DISABLED: "true"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        for attempt in $$(seq 1 60); do
+          aws --endpoint-url http://seaweed:8333 s3api head-bucket --bucket tribal >/dev/null 2>&1 && exit 0;
+          aws --endpoint-url http://seaweed:8333 s3api create-bucket --bucket tribal >/dev/null 2>&1 && exit 0;
+          sleep 2;
+        done;
+        exit 1
+  app:
+    profiles: ["app"]
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    depends_on:
+      mysql:
+        condition: service_healthy
+      initialize-bucket:
+        condition: service_completed_successfully
+    environment:
+      TRIBAL_PROJECT_ID: ${TRIBAL_PROJECT_ID:-tribal-demo}
+      TRIBAL_MYSQL_HOST: mysql
+      TRIBAL_S3_ENDPOINT_URL: http://seaweed:8333
+      TRIBAL_INTERNAL_URL: http://127.0.0.1:8000/internal/mcp
+      TRIBAL_CODEX_MODEL: ${TRIBAL_CODEX_MODEL:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - codex-auth:/home/tribal/.codex
+volumes:
+  mysql-data:
+  seaweed-data:
+  codex-auth:

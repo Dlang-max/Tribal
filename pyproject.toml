@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "tribal"
 version = "0.1.0"
-description = "Basic local knowledge-base MCP server for Tribal"
+description = "Concurrent Codex knowledge curators and a live project graph"
 requires-python = ">=3.12,<3.13"
 dynamic = ["dependencies"]
 
@@ -18,6 +18,17 @@ tribal-mcp-server = "server:main"
 [tool.setuptools]
 package-dir = { "" = "src/tribal-mcp-server/src" }
 py-modules = ["server"]
+
+[tool.setuptools.packages.find]
+where = ["src/tribal-mcp-server/src"]
+include = ["tribal_kb*"]
+
+[tool.setuptools.package-data]
+tribal_kb = ["resources/*.md", "resources/*.json"]
+
+[tool.setuptools.data-files]
+"share/tribal/agent-knowledge-base/specs/v1" = ["agent-knowledge-base/specs/v1/*.md"]
+"share/tribal/agent-knowledge-base/validation/v1" = ["agent-knowledge-base/validation/v1/validate_knowledge_base_notes.py"]
 
 [tool.ruff]
 line-length = 100
