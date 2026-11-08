@@ -320,7 +320,9 @@ class KnowledgeBaseService:
     # Await outstanding derived indexing when shutting down or synchronizing callers.
     async def drain_indexing(self):
         while self._index_tasks:
-            await asyncio.gather(*tuple(self._index_tasks), return_exceptions=True)
+            tasks = tuple(self._index_tasks)
+            await asyncio.gather(*tasks, return_exceptions=True)
+            self._index_tasks.difference_update(tasks)
 
     # Rank active project notes lexically and add only fresh compatible vector similarities.
     async def search_notes(self, query: str, limit: int = 10) -> list[dict]:
