@@ -26,7 +26,7 @@ ul { padding: 0; margin: 0; list-style: none; }
 .react-flow__node-note { width: 44px; height: 44px; background: transparent; border: 0; cursor: pointer; }
 .note-node { position: relative; width: 44px; height: 44px; }
 .node-rings { position: absolute; inset: 0; width: 44px; height: 44px; }
-.note-dot { fill: #b5b2c0; }
+.note-dot { fill: #b5b2c0; stroke: #d9c6ff; stroke-width: 0; transition: fill 220ms ease, stroke 220ms ease, stroke-width 220ms ease; }
 .react-flow__node-note.selected .note-dot, .react-flow__node-note:hover .note-dot, .react-flow__node-note:focus-visible .note-dot { fill: var(--accent); stroke: #d9c6ff; stroke-width: 1.5; }
 .note-label { position: absolute; top: 42px; left: 50%; transform: translateX(-50%); text-align: center; width: 160px; font-size: 11px; line-height: 1.4; font-weight: 400; color: #c2bfcb; overflow-wrap: anywhere; pointer-events: none; }
 .react-flow__node-note.selected .note-label { color: #e3d5ff; }
