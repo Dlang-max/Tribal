@@ -37,13 +37,15 @@ async function emit(page: Page, value: ReturnType<typeof event>) {
 }
 
 test('renders overlapping real edge paths and independently expires each server-time trail', async ({ page }) => {
-  await page.clock.install({ time: new Date(START) });
-  await page.clock.pauseAt(new Date(START));
+  await page.clock.setFixedTime(new Date(START));
   await openGraph(page);
   await emit(page, event({ node_ids: ['note-a', 'note-b'], edge_ids: ['link-ab'] }));
-  await page.clock.runFor(4000);
+  await page.clock.setFixedTime(new Date(START + 4000));
   await emit(page, event({ run_id: 'run-lin', name: 'Lin curator', color: '#39c8ab', message: 'Following repository link', timestamp: new Date(START + 4000).toISOString(), edge_ids: ['link-ab'] }));
-  const strokes = page.getByTestId('edge-visit').filter({ has: page.locator('title') });
+  await expect(page.getByRole('region', { name: 'Curator activity' }).getByText('Lin curator')).toBeVisible();
+  await expect(page.locator('.react-flow__node[data-id="note-a"]')).toBeVisible();
+  await expect(page.locator('.react-flow__edge')).toHaveCount(2);
+  const strokes = page.getByTestId('edge-visit');
   await expect(strokes).toHaveCount(2);
   const geometry = await strokes.evaluateAll((paths) => paths.map((path) => ({
     path: path.getAttribute('d'), color: path.getAttribute('stroke'),
@@ -52,21 +54,20 @@ test('renders overlapping real edge paths and independently expires each server-
   expect(geometry.map(({ color }) => color).sort()).toEqual(['#39c8ab', '#a67aff']);
   expect(geometry.every(({ length }) => Number.isFinite(length) && length > 0)).toBe(true);
   expect(geometry[0].path).not.toEqual(geometry[1].path);
-  await expect(page.getByTestId('node-visit').filter({ hasText: '' })).toHaveCount(3);
-  await page.clock.runFor(6000);
+  await expect(page.getByTestId('node-visit')).toHaveCount(3);
+  await page.clock.setFixedTime(new Date(START + 10000));
   await expect(strokes).toHaveCount(1);
   await expect(strokes).toHaveAttribute('data-run-id', 'run-lin');
   await expect(strokes).toHaveCSS('opacity', '0.4');
-  await page.clock.runFor(4000);
+  await page.clock.setFixedTime(new Date(START + 14000));
   await expect(strokes).toHaveCount(0);
   await expect(page.getByTestId('node-visit')).toHaveCount(0);
   await page.locator('.react-flow__node[data-id="note-a"]').click();
   await expect(page.getByRole('region', { name: 'Note details' }).getByText('decisions/storage.md')).toBeVisible();
   const viewport = page.locator('.react-flow__viewport');
   const before = await viewport.getAttribute('style');
-  await page.getByRole('button', { name: 'zoom in', exact: true }).click();
-  await page.clock.runFor(400);
-  expect(await viewport.getAttribute('style')).not.toEqual(before);
+  await page.getByRole('button', { name: /^Zoom In$/i }).click();
+  await expect.poll(() => viewport.getAttribute('style')).not.toEqual(before);
 });
 
 test('keeps the note browser and inspector usable at 390px with reduced motion', async ({ page }) => {
