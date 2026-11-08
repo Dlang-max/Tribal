@@ -7,9 +7,6 @@ from pathlib import Path
 import sys
 import tomllib
 
-from fastmcp import Client
-from fastmcp.client.transports import StreamableHttpTransport
-
 CONFIG_PATH = "__SCENARIO_PATH__"
 
 
@@ -50,6 +47,9 @@ async def main():
     if scenario.get("mode") == "fail":
         print("controlled process failure", file=sys.stderr)
         sys.exit(23)
+    from fastmcp import Client
+    from fastmcp.client.transports import StreamableHttpTransport
+
     transport = StreamableHttpTransport(mcp_config["url"], headers=headers)
     async with Client(transport) as client:
         record["tools"] = [tool.name for tool in await client.list_tools()]

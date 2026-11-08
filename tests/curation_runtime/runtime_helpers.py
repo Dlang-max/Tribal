@@ -102,7 +102,10 @@ def make_executable(tmp_path, *, calls=(), final=None, mode=None, release=None, 
 async def wait_for_marker(marker):
     for _ in range(300):
         if marker.exists():
-            return json.loads(marker.read_text())
+            try:
+                return json.loads(marker.read_text())
+            except json.JSONDecodeError:
+                pass
         await asyncio.sleep(0.01)
     raise AssertionError(f"Curator subprocess did not start: {marker}")
 
