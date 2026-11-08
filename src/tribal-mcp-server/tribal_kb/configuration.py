@@ -64,7 +64,7 @@ def build_service(settings: Settings):
     from .service import KnowledgeBaseService
     from .storage import MySQLCatalog, SeaweedObjectStore
 
-    resources = Path(__file__).resolve().parents[4] / "agent-knowledge-base"
+    resources = Path(__file__).resolve().parents[3] / "agent-knowledge-base"
     if not resources.is_dir():
         resources = Path(sysconfig.get_path("data")) / "share/tribal/agent-knowledge-base"
     spec_root = Path(settings.spec_root) if settings.spec_root else resources / "specs/v1"

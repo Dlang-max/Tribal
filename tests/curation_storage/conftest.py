@@ -11,7 +11,7 @@ import pytest
 import pytest_asyncio
 
 ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / "src/tribal-mcp-server/src"))
+sys.path.insert(0, str(ROOT / "src/tribal-mcp-server"))
 SPEC_ROOT = ROOT / "agent-knowledge-base/specs/v1"
 NOTE_PATHS = {
     "project": "Projects/Checkout Platform.md",

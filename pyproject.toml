@@ -16,11 +16,11 @@ dependencies = { file = ["requirements.txt"] }
 tribal-mcp-server = "server:main"
 
 [tool.setuptools]
-package-dir = { "" = "src/tribal-mcp-server/src" }
+package-dir = { "" = "src/tribal-mcp-server" }
 py-modules = ["server"]
 
 [tool.setuptools.packages.find]
-where = ["src/tribal-mcp-server/src"]
+where = ["src/tribal-mcp-server"]
 include = ["tribal_kb*"]
 
 [tool.setuptools.package-data]
