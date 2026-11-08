@@ -22,8 +22,12 @@ Compose initializes MySQL's `tribal` database/user and the SeaweedFS S3 bucket
 `tribal`. Data survives container restarts in named volumes. Sample storage
 credentials are local demo defaults only. Configuration is shown in
 [`docker/local.env.example`](../docker/local.env.example); copy it to a private
-file outside the repository if needed. The server reads the process environment,
-not an automatic dotenv file. Export variables explicitly or source the example:
+file outside the repository if needed. When started from the repository root,
+the backend automatically loads `.env`. Copy `.env.example` to `.env` if it does
+not exist, then set `OPENAI_API_KEY` there to enable embeddings. Restart the backend
+after editing it. `.env` is ignored by Git; keep actual keys out of frontend files.
+Already exported environment variables take precedence over `.env` values.
+Alternatively, export variables explicitly or source the storage example:
 
 ```sh
 set -a

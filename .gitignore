@@ -8,3 +8,6 @@ dist/
 playwright-report/
 test-results/
 build/
+.env
+.env.*
+!.env.example

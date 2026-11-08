@@ -7,6 +7,8 @@ import os
 from pathlib import Path
 import sysconfig
 
+from dotenv import load_dotenv
+
 
 @dataclass(frozen=True)
 class Settings:
@@ -33,6 +35,7 @@ class Settings:
     # Read configuration without importing or contacting optional backend dependencies.
     @classmethod
     def from_env(cls) -> Settings:
+        load_dotenv(Path.cwd() / ".env", override=False)
         project_id = os.environ.get("TRIBAL_PROJECT_ID", "").strip()
         if not project_id:
             raise ValueError("Set TRIBAL_PROJECT_ID to the knowledge base's project ID")
