@@ -19,8 +19,11 @@ python3.12 -m venv .venv
 ```
 
 Compose initializes MySQL's `tribal` database/user and the SeaweedFS S3 bucket
-`tribal`. Data survives container restarts in named volumes. Sample storage
-credentials are local demo defaults only. Configuration is shown in
+`tribal`. Data survives container restarts in named volumes.
+The local SeaweedFS configuration allows 20 volumes of 128 MB each: the default
+collection and S3 bucket collections need separate volume slots. A running S3
+endpoint or existing bucket alone does not prove that object writes work.
+Sample storage credentials are local demo defaults only. Configuration is shown in
 [`docker/local.env.example`](../docker/local.env.example); copy it to a private
 file outside the repository if needed. When started from the repository root,
 the backend automatically loads `.env`. Copy `.env.example` to `.env` if it does
