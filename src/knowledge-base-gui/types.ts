@@ -20,3 +20,4 @@ export interface ActivityState {
   nodes: Record<string, Record<string, Visit>>;
   edges: Record<string, Record<string, Visit>>;
 }
+export interface NoteContent extends GraphNode { markdown: string; revision: number; links: GraphEdge[] }

@@ -2,7 +2,7 @@
 import { act } from '@testing-library/react';
 import { vi } from 'vitest';
 import type { ActivityEvent, GraphSnapshot } from '@gui/types';
-import { graph } from './fixtures';
+import { graph, noteContent } from './fixtures';
 
 export class ControlledEventSource {
   static readonly CONNECTING = 0;
@@ -31,6 +31,10 @@ export function installNetwork(snapshot: GraphSnapshot = graph) {
   vi.stubGlobal('EventSource', ControlledEventSource);
   const requests: { signal?: AbortSignal | null }[] = [];
   const fetch = vi.fn(async (url: RequestInfo | URL, options?: RequestInit) => {
+    if (String(url).startsWith('/api/notes/')) {
+      requests.push({ signal: options?.signal });
+      return Response.json(noteContent(decodeURIComponent(String(url).slice('/api/notes/'.length))));
+    }
     if (url !== '/api/graph') throw new Error(`Unexpected HTTP request: ${String(url)}`);
     requests.push({ signal: options?.signal });
     return Response.json(snapshot);
